@@ -192,6 +192,36 @@ app.delete('/delete-account', (req, res) => {
     });
 });
 
+// This will  be used for testing 
+app.get('/debug/db', (req, res) => {
+  console.log('--- USERS TABLE ---');
+
+  db.all('SELECT * FROM USERS', [], (err, users) => {
+    if (err) {
+      console.error('Error fetching USERS:', err.message);
+      return res.status(500).json({ error: err.message });
+    }
+
+    console.table(users);
+
+    console.log('--- LEVEL_PROGRESS TABLE ---');
+
+    db.all('SELECT * FROM LEVEL_PROGRESS', [], (err, progress) => {
+      if (err) {
+        console.error('Error fetching LEVEL_PROGRESS:', err.message);
+        return res.status(500).json({ error: err.message });
+      }
+
+      console.table(progress);
+
+      res.json({
+        message: 'Database contents logged to server console'
+      });
+    });
+  });
+});
+
+
 // Start Server
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
