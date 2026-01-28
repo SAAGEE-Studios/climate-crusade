@@ -141,7 +141,7 @@ app.get('/progress/:user_id', (req, res) => {
 });
 
 app.delete('/delete-account', (req, res) => {
-    const {user_id, password} = req.params;
+    const {user_id, password} = req.body;
 
     if (!user_id || !password){
         return res.status(400).json({
