@@ -82,6 +82,115 @@ app.post('/login', async(req, res) => {
     });
 });
 
+app.post('/save-progress', async(req, res) => {
+    const { user_id, level_id, stars_collected } = req.body;
+
+    if (!user_id || !level_id || stars_collected == null) {
+        return res.status(400).json({
+            error: 'Missing required fields'
+        });
+    }
+
+    if (stars_collected < 0 || stars_collected > 3) {
+        return res.status(400).json({
+            error: 'Invalid star count'
+        });
+    }
+
+    const query = `
+        INSERT INTO LEVEL_PROGRESS (user_id, level_id, stars_collected)
+        VALUES (?, ?, ?)
+        ON CONFLICT(user_id, level_id)
+        DO UPDATE SET stars_collected = MAX(stars_collected, excluded.stars_collected)
+    `;
+
+    db.run(query, [user_id, level_id, stars_collected], function (err) {
+        if (err) {
+            return res.status(400).json({
+                error: err.message
+            });
+        }
+
+        res.status(200).json({
+            message: 'Progress saved successfully'
+        });
+    });
+});
+
+app.get('/progress/:user_id', (req, res) => {
+    const { user_id} = req.params;
+
+    const query = `
+        SELECT level_id, stars_collected
+        FROM LEVEL_PROGRESS
+        WHERE user_id = ?
+    `;
+
+    db.all(query, [user_id], (err, rows) => {
+        if (err) {
+            return res.status(400).json({
+                error: err.message
+            });
+        }
+
+    res.json({
+      user_id: user_id,
+      progress: rows
+    });
+  });
+});
+
+app.delete('/delete-account', (req, res) => {
+    const {user_id, password} = req.params;
+
+    if (!user_id || !password){
+        return res.status(400).json({
+            error: 'Missing required fields'
+        });
+    }
+
+    const findUserQuery = 'SELECT * FROM USERS WHERE user_id = ?';
+
+    db.get(findUserQuery, [user_id], async(err, user) => {
+        if (err || !user){
+            return res.status(404).json({
+                error: 'User not found'
+            });
+        }
+
+        const match = await bcrypt.compare(password, user.password_hash);
+        if (!match) {
+            return res.status(401).json({
+                error: 'Invalid password'
+            });
+        }
+
+        const deleteProgressQuery = 'DELETE FROM LEVEL_PROGRESS WHERE user_id = ?';
+
+        db.run(deleteProgressQuery, [user_id], (err) => {
+            if(err){
+                return res.status(400).json({
+                    error: err.message
+                });
+            }
+
+            const deleteUserQuery = 'DELETE FROM USERS WHERE user_id = ?';
+
+            db.run(deleteUserQuery, [user_id], (err) => {
+                if (err) {
+                    return res.status(400).json({
+                        error: err.message
+                    });
+                }
+
+                res.json({
+                    message: 'Account deleted successfully'
+                });
+            });
+        });
+    });
+});
+
 // Start Server
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
