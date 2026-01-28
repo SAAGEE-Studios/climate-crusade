@@ -11,6 +11,7 @@ app.use(cors()); // Enables CORS for all routes. Without this, fetch() would fai
 app.use(express.json()); // Tells Express an incoming request may contain json
 
 // Database Connection
+console.log("Starting server...");
 const db = new sqlite3.Database(
     './database/climatecrusade.db',
     (err) => {
