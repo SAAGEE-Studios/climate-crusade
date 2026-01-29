@@ -221,6 +221,40 @@ app.get('/debug/db', (req, res) => {
   });
 });
 
+app.post('/mark-first-time-complete', async(req, res) => {
+    const { user_id} = req.body;
+
+    if (!user_id) {
+        return res.status(400).json({
+            error: 'Missing user_id'
+        });
+    }
+
+    const query = `
+        UPDATE USERS
+        SET first_time_play = 0
+        WHERE user_id = ?
+    `;
+
+    db.run(query, [user_id], function (err){
+        if (err) {
+            return res.status(400).json({
+                error: 'Missing user_id'
+            });
+        }
+
+        if (this.changes === 0) {
+            return res.status(404).json({
+                error: 'User not found'
+            });
+        }
+
+        res.json({
+            message: 'First-time play flag updated'
+        });
+    });
+});
+
 
 // Start Server
 app.listen(PORT, () => {
