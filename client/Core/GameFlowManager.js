@@ -1,0 +1,17 @@
+export const GameFlowManager = {
+    goToLogin(scene){
+        scene.scene.start('LoginScene');
+    },
+
+    goToLevelSelect(scene){
+        scene.scene.start('LevelSelectScene');
+    },
+
+    goToIntro(scene){
+        scene.scene.start('IntroScene');
+    },
+
+    goToFirstTimeCutscene(scene){
+        scene.scene.start('FirstTimeCutsceneScene');
+    }
+};
