@@ -78,7 +78,7 @@
             font-size: 15px;
             border: none;
             cursor: pointer;
-        } 
+        }
 
         #login-ui button:hover {
             background: linear-gradient(#777, #444);
@@ -98,6 +98,49 @@
             color: #6b68ff;
         }
 
+        #signup-ui {
+            position: absolute;
+            top: 65%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            align-items: center;
+
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        #signup-ui input {
+            width: 260px;
+            height: 44px;
+            border-radius: 30px;
+            border: none;
+            padding: 0 16px;
+            font-family: 'Lumios Typewriter Used';
+
+            background: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+        }
+
+        #signup-ui button {
+            width: 120px;
+            height: 36px;
+            border-radius: 26px;
+            background: linear-gradient(#444, #111);
+            font-family: 'Lumios Typewriter Used';
+            color: white;
+            border: none;
+            margin-top: 30px;
+            cursor: pointer;
+        }
+
+        #signup-ui a {
+            text-align: center;
+            font-family: 'Lumios Typewriter Used';
+            color: blue;
+            font-size: 13px;
+            cursor: pointer;
+        }
     </style>
 </head>
 
@@ -110,6 +153,19 @@
         <input id="login-password" type="password" placeholder="Password" />
         <button id="login-button">Login</button>
         <a id="signup-link"><u>Don't have an account? Signup</u></a>
+        <div id="login-status" ></div>
+    </div>
+
+    <div id="signup-ui">
+        <input type="text" id="signup-username" placeholder="Username" />
+        <input type="email" id="signup-email" placeholder="Email" />
+        <input type="password" id="signup-password" placeholder="Password" />
+        <input type="date" id="signup-dob" />
+
+        <button id="signup-button">Signup</button>
+
+        <a id="back-to-login" href="#"><u>Back to Login<u></a>
+        <div id="signup-status" ></div>
     </div>
 
     <script src="./phaser.js"></script>

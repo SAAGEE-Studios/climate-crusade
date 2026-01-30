@@ -3,6 +3,10 @@ export const GameFlowManager = {
         scene.scene.start('LoginScene');
     },
 
+    goToSignup(scene){
+        scene.scene.start('SignupScene');
+    },
+
     goToLevelSelect(scene){
         scene.scene.start('LevelSelectScene');
     },

@@ -18,7 +18,13 @@ export class IntroScene extends Phaser.Scene {
     create() {
         const video = this.add.video(this.scale.width/2,this.scale.height/2,'introVideo').setOrigin(0.5, 0.5);
         video.setDisplaySize(this.scale.width/16, this.scale.height/12);
+        video.setMute(true);
         video.play(true);
+
+        this.input.once('pointerdown', () => {
+            this.sound.context.resume();
+            video.setMute(false);
+        });
 
         // When video finishes, move to login
         video.once('complete', () => {

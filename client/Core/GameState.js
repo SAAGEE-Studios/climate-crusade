@@ -1,7 +1,7 @@
-
 export const GameState = {
     userId: null,
     firstTimePlay: true,
+    bgMusic: null,
 
     progress: {},
 
@@ -12,5 +12,6 @@ export const GameState = {
         this.firstTimePlay = true;
         this.progress = {};
         this.isLoggedIn = false;
+        this.bgMusic = null;
     }
 };
