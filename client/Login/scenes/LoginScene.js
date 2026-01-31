@@ -24,7 +24,7 @@ export class LoginScene extends Phaser.Scene {
                 volume: 0.6,
                 loop: true
             });
-            GameState.bgMusic.play();
+            GameState.bgMusic.play(); 
         }
 
         this.loginUI = document.getElementById('login-ui');

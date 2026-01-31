@@ -2,7 +2,7 @@ import { SCENES } from '../Core/SceneRegistry.js';
 
 const config = {
     type: Phaser.AUTO,
-    title: 'Overlord Rising',
+    title: 'Climate Crusade',
     description: '',
     parent: 'game-container',
     width: 1920,

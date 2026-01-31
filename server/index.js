@@ -46,8 +46,15 @@ app.post('/signup', async(req, res) => {
 
     db.run(query, [username, email, hashedPassword, date_of_birth], function (err) {
         if (err) {
+
+            if (err.message.includes('UNIQUE')) {
+                return res.status(409).json({
+                    error: 'Username or email already exists'
+                });
+            }
+
             return res.status(400).json({
-            error: err.message
+                error: err.message
             });
         }
 

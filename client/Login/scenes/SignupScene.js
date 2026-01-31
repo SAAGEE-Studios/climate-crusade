@@ -1,4 +1,5 @@
 import { GameFlowManager } from '../../Core/GameFlowManager.js';
+import { InputValidation } from '../../Core/InputValidation.js';
 
 export class SignupScene extends Phaser.Scene {
     constructor() {
@@ -17,10 +18,48 @@ export class SignupScene extends Phaser.Scene {
         this.signupUI.style.display = 'flex';
 
         const backLink = document.getElementById('back-to-login');
+        const signupButton = document.getElementById('signup-button');
+
         backLink.onclick = () => {
             this.signupUI.style.display = 'none';
-            this.scene.start('LoginScene');
+            this.scene.start('LoginScene'); 
         };
+
+        signupButton.onclick = async () => {
+            console.log('Handle Signup Reached');
+            this.handleLogin();
+        }
+    }
+
+    async handleLogin() {
+        const status = document.getElementById('signup-status');
+        const username = document.getElementById('signup-username').value;
+        const password = document.getElementById('signup-password').value;
+        const email = document.getElementById('signup-email').value;
+        const dob = document.getElementById('signup-dob').value;
+
+        // Case 1: One or more fields empty
+        if (!username || !password || !email || !dob){
+            status.textContent = "Please enter username and password";
+            status.style.color = 'red';
+
+            setTimeout(() => {
+                status.textContent = "";
+            }, 1500);
+            return;
+        }
+
+        if (!InputValidation.validateUsername(username) || !InputValidation.validatePassword(password)
+        || !InputValidation.validateEmail(email) || !InputValidation.validateDateOfBirth(dob)){
+            status.textContent = "Invalid User Information";
+            status.style.color = 'red';
+
+            setTimeout(() => {
+                status.textContent = "";
+            }, 1500);
+            return;
+        }
+
     }
 
     update() {
