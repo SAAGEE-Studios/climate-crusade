@@ -8,13 +8,12 @@ import { Level04_GameplayScene } from '../Levels/Level04/Scenes/GameplayScene.js
 import { Level04_CompletionScene } from '../Levels/Level04/Scenes/CompletionScene.js';
 
 export const SCENES = [
-  // Level04 first for testing (move back after IntroScene when LevelSelect is ready)
-  Level04_EntryScene,
-  Level04_CutsceneScene,
-  Level04_GameplayScene,
-  Level04_CompletionScene,
   IntroScene,
   LoginScene,
   SignupScene,
   ValidationTests,
+  Level04_EntryScene,
+  Level04_CutsceneScene,
+  Level04_GameplayScene,
+  Level04_CompletionScene,
 ];
