@@ -1,7 +1,7 @@
 {
   "id": "level02",
   "displayName": "Deep Purge",
-  "order": 2,
+  "order": 1,
   "maxStars": 3,
 
   "scenes": {
