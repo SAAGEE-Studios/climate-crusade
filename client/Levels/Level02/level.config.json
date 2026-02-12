@@ -1,0 +1,15 @@
+{
+  "id": "leve201",
+  "displayName": "Deep Purge",
+  "order": 2,
+  "maxStars": 3,
+
+  "scenes": {
+    "entry": "Leve201EntryScene",
+    "introCutscene": "Leve201IntroCutscene",
+    "outroCutscene": "Leve201OutroCutscene"
+  },
+
+  "assetsPath": "./Levels/Leve201/Assets/",
+  "cutscenePath": "./Levels/Leve201/Cutscene/"
+}
