@@ -1,15 +1,15 @@
 {
-  "id": "leve201",
+  "id": "level02",
   "displayName": "Deep Purge",
   "order": 2,
   "maxStars": 3,
 
   "scenes": {
-    "entry": "Leve201EntryScene",
-    "introCutscene": "Leve201IntroCutscene",
-    "outroCutscene": "Leve201OutroCutscene"
+    "entry": "Level02EntryScene",
+    "introCutscene": "Level02IntroCutscene",
+    "outroCutscene": "Level02OutroCutscene"
   },
 
-  "assetsPath": "./Levels/Leve201/Assets/",
-  "cutscenePath": "./Levels/Leve201/Cutscene/"
+  "assetsPath": "./Levels/Level02/Assets/",
+  "cutscenePath": "./Levels/Level02/Cutscene/"
 }
