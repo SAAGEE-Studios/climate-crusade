@@ -1,0 +1,15 @@
+{
+  "id": "level03",
+  "displayName": "Sunken Wells",
+  "order": 3,
+  "maxStars": 3,
+
+  "scenes": {
+    "entry": "Level03EntryScene",
+    "introCutscene": "Level03IntroCutscene",
+    "outroCutscene": "Level03OutroCutscene"
+  },
+
+  "assetsPath": "./Levels/Level03/Assets/",
+  "cutscenePath": "./Levels/Level03/Cutscene/"
+}
