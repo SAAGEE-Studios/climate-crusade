@@ -8,6 +8,10 @@ export class SignupScene extends Phaser.Scene {
 
     preload() {
         this.load.image('signup_background', './client/Shared/LoginScene/SignupBackground.png');
+        this.load.audio(
+            'buttonclick',
+            './client/Shared/Audio/UIButton1.mp3'
+        );
     }
 
     create() {
@@ -19,19 +23,21 @@ export class SignupScene extends Phaser.Scene {
 
         const backLink = document.getElementById('back-to-login');
         const signupButton = document.getElementById('signup-button');
+        const clickS = this.sound.add('buttonclick', {volume: 1});
 
         backLink.onclick = () => {
             this.signupUI.style.display = 'none';
-            this.scene.start('LoginScene'); 
+            this.scene.start('LoginScene');
         };
 
         signupButton.onclick = async () => {
             console.log('Handle Signup Reached');
-            this.handleLogin();
+            clickS.play();
+            this.handleSignup();
         }
     }
 
-    async handleLogin() {
+    async handleSignup() {
         const status = document.getElementById('signup-status');
         const username = document.getElementById('signup-username').value;
         const password = document.getElementById('signup-password').value;
@@ -39,7 +45,7 @@ export class SignupScene extends Phaser.Scene {
         const dob = document.getElementById('signup-dob').value;
 
         // Case 1: One or more fields empty
-        if (!username || !password || !email || !dob){
+        if (!username || !password || !email || !dob) {
             status.textContent = "Please enter username and password";
             status.style.color = 'red';
 
@@ -50,24 +56,74 @@ export class SignupScene extends Phaser.Scene {
         }
 
         if (!InputValidation.validateUsername(username) || !InputValidation.validatePassword(password)
-        || !InputValidation.validateEmail(email) || !InputValidation.validateDateOfBirth(dob)){
+            || !InputValidation.validateEmail(email) || !InputValidation.validateDateOfBirth(dob)) {
             status.textContent = "Invalid User Information";
             status.style.color = 'red';
 
             setTimeout(() => {
                 status.textContent = "";
             }, 1500);
+
             return;
         }
 
+        try {
+            const res = await fetch('https://climate-crusade.onrender.com/signup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username,
+                    email,
+                    password,
+                    date_of_birth: dob
+                })
+            });
+
+            const data = await res.json();
+
+            if (res.status === 409) {
+                status.textContent = data.error;
+                status.style.color = 'red';
+
+                setTimeout(() => {
+                    status.textContent = "";
+                }, 1200);
+
+                return;
+            }
+
+            if (!res.ok) {
+                status.textContent = 'Signup failed. Please try again.';
+                status.style.color = 'red';
+
+                setTimeout(() => {
+                    status.textContent = "";
+                }, 1200);
+
+                return;
+            }
+
+            // SUCCESS
+            status.textContent = 'Account created! You can now log in.';
+            status.style.color = 'green';
+
+            setTimeout(() => {
+                this.signupUI.style.display = 'none';
+                GameFlowManager.goToLogin(this);
+            }, 1200);
+
+        } catch (error){
+            status.textContent = 'Server error. Please try again.';
+            status.style.color = 'red';
+        }
     }
 
     update() {
-    }
+        }
 
-    shutdown() {
-        if (this.signupUI) {
-            this.signupUI.style.display = 'none';
+        shutdown() {
+            if (this.signupUI) {
+                this.signupUI.style.display = 'none';
+            }
         }
     }
-}

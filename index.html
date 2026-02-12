@@ -6,6 +6,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ClimateCrusade</title>
     <style>
+        #game-container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        #ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+
+            width: 1920px;
+            height: 1080px;
+
+            transform-origin: top left;
+            pointer-events: none;
+        }
+
         /* Reset CSS: Please avoid making changes here unless you know what you're doing :) */
         *,
         *::before,
@@ -19,6 +40,7 @@
         body {
             width: 100%;
             height: 100%;
+            overflow: hidden;
         }
 
         body {
@@ -141,31 +163,276 @@
             font-size: 13px;
             cursor: pointer;
         }
+
+        #level-select-ui {
+            position: absolute;
+            top: 19%;
+            left: 5%;
+            width: 500px;
+            height: 70%;
+            padding: 20px;
+
+            display: grid;
+            grid-template-columns: repeat(2, 120px);
+            grid-auto-flow: row;
+            gap: 120px 160px;
+            align-content: start;
+
+
+            overflow-y: auto;
+            z-index: 10;
+        }
+
+        #level-select-ui::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #level-select-ui::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 3px;
+        }
+
+        .level-button {
+            position: relative;
+            width: 180px;
+            height: 220px;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+
+            /* Makes Transitions smooth and not snappy */
+            transition:
+                transform 0.2s ease,
+                filter 0.2s ease;
+        }
+
+        .level-button:hover {
+            transform: scale(1.08) translateY(-6px);
+            filter: brightness(1.1);
+        }
+
+        .level-button:active {
+            transform: scale(1.02) translateY(-2px);
+        }
+
+        .level-crystal {
+            opacity: 0.7;
+            width: 180px;
+            height: 220px;
+        }
+
+        .level-title {
+            position: absolute;
+            font-size: 80px;
+            font-family: 'Tahoma', sans-serif;
+            color: white;
+            opacity: 0.7;
+            left: 70px;
+            bottom: 75px;
+        }
+
+        .level-button:hover .level-crystal,
+        .level-button:hover .star {
+            opacity: 1;
+        }
+
+        .stars-container {
+            width: 190px;
+            position: relative;
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .star {
+            width: 56px;
+            opacity: 0.7;
+        }
+
+        .star:nth-child(1) {
+            transform: translateY(-20px);
+        }
+
+        .star:nth-child(2) {
+            transform: translateY(0px);
+        }
+
+        .star:nth-child(3) {
+            transform: translateY(-20px);
+        }
+
+        #earth-ui {
+            position: absolute;
+            bottom: 10px;
+            right: -180px;
+            left: auto;
+            transform: translateX(-50%);
+
+            display: flex;
+            align-items: center;
+            gap: 50px;
+
+            z-index: 10;
+        }
+
+        #earth-image {
+            width: clamp(110px, 9.5vw, 160px);
+            flex-shrink: 0;
+            height: auto;
+            opacity: 0.9;
+        }
+
+        #selection-screen {
+            width: 720px;
+            flex-shrink: 0;
+            margin-left: 1200px;
+            margin-top: 200px;
+            height: 800px;
+            opacity: 0.9;
+        }
+
+        #selection-image {
+            width: 720px;
+            height: 900px;
+            opacity: 0.9;
+        }
+
+        #earth-bar {
+            flex: 1;
+            min-width: 300px;
+            max-width: 400px;
+            height: 28px;
+            border-radius: 10px;
+            margin-top: 70px;
+
+            background: rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+
+            box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.5);
+        }
+
+        #earth-bar-fill {
+            height: 100%;
+            width: 50%;
+            /* Starting Value */
+
+            background: linear-gradient(to right,
+                    #3bff9f,
+                    #00c46a);
+
+            transition: width 0.5s ease;
+        }
+
+        #earth-percent {
+            font-size: 20px;
+            color: white;
+            opacity: 0.8;
+            min-width: 40px;
+            margin-top: 70px;
+        }
+
+        #earth-title {
+            font-size: 30px;
+            color: white;
+            opacity: 0.8;
+            min-width: 40px;
+            margin-right: -121px;
+            margin-top: -30px;
+        }
+
+        .level-button,
+        #login-ui,
+        #signup-ui {
+            pointer-events: auto;
+        }
     </style>
 </head>
 
 <body>
-    <div id="game-container"></div>
+    <div id="game-container">
+        <div id="ui-overlay">
+            <!-- UI shells -->
+            <div id="login-ui" style="display: none;">
+                <input id="login-username" type="text" placeholder="Username" />
+                <input id="login-password" type="password" placeholder="Password" />
+                <button id="login-button">Login</button>
+                <a id="signup-link"><u>Don't have an account? Signup</u></a>
+                <div id="login-status"></div>
+            </div>
 
-    <!-- UI shells -->
-    <div id="login-ui" style="display: none;">
-        <input id="login-username" type="text" placeholder="Username" />
-        <input id="login-password" type="password" placeholder="Password" />
-        <button id="login-button">Login</button>
-        <a id="signup-link"><u>Don't have an account? Signup</u></a>
-        <div id="login-status" ></div>
-    </div>
+            <div id="signup-ui">
+                <input type="text" id="signup-username" placeholder="Username" />
+                <input type="email" id="signup-email" placeholder="Email" />
+                <input type="password" id="signup-password" placeholder="Password" />
+                <input type="date" id="signup-dob" />
 
-    <div id="signup-ui">
-        <input type="text" id="signup-username" placeholder="Username" />
-        <input type="email" id="signup-email" placeholder="Email" />
-        <input type="password" id="signup-password" placeholder="Password" />
-        <input type="date" id="signup-dob" />
+                <button id="signup-button">Signup</button>
 
-        <button id="signup-button">Signup</button>
+                <a id="back-to-login" href="#"><u>Back to Login<u></a>
+                <div id="signup-status"></div>
+            </div>
 
-        <a id="back-to-login" href="#"><u>Back to Login<u></a>
-        <div id="signup-status" ></div>
+            <div id="level-select-ui">
+                <div class="level-button" data-level-id="level01">
+                    <img class = "level-crystal" src = "./client/Shared/LevelSelectScene/Crystal.png" />
+                    <p class="level-title">1</p>
+
+                    <div class="stars-container">
+                        <img class="star" src="./client/Shared/LevelSelectScene/UnfilledStar.png" />
+                        <img class="star" src="./client/Shared/LevelSelectScene/UnfilledStar.png" />
+                        <img class="star" src="./client/Shared/LevelSelectScene/UnfilledStar.png" />
+                    </div>
+                </div>
+
+                <div class="level-button" data-level-id="level02">
+                    <img class = "level-crystal" src = "./client/Shared/LevelSelectScene/Crystal.png" />
+                    <p class="level-title">2</p>
+
+                    <div class="stars-container">
+                        <img class="star" src="./client/Shared/LevelSelectScene/UnfilledStar.png" />
+                        <img class="star" src="./client/Shared/LevelSelectScene/UnfilledStar.png" />
+                        <img class="star" src="./client/Shared/LevelSelectScene/UnfilledStar.png" />
+                    </div>
+                </div>
+
+                <div class="level-button" data-level-id="level03">
+                    <img class = "level-crystal" src = "./client/Shared/LevelSelectScene/Crystal.png" />
+                    <p class="level-title">3</p>
+
+                    <div class="stars-container">
+                        <img class="star" src="./client/Shared/LevelSelectScene/UnfilledStar.png" />
+                        <img class="star" src="./client/Shared/LevelSelectScene/UnfilledStar.png" />
+                        <img class="star" src="./client/Shared/LevelSelectScene/UnfilledStar.png" />
+                    </div>
+                </div>
+
+                <div class="level-button" data-level-id="level04">
+                    <img class = "level-crystal" src = "./client/Shared/LevelSelectScene/Crystal.png" />
+                    <p class="level-title">4</p>
+
+                    <div class="stars-container">
+                        <img class="star" src="./client/Shared/LevelSelectScene/UnfilledStar.png" />
+                        <img class="star" src="./client/Shared/LevelSelectScene/UnfilledStar.png" />
+                        <img class="star" src="./client/Shared/LevelSelectScene/UnfilledStar.png" />
+                    </div>
+                </div>
+            </div>
+
+            <div id="earth-ui">
+                <img id = "earth-image" src = "./client/Shared/LevelSelectScene/Earth.png" />
+                <div id="earth-title"> Earth</div>
+
+                <div id="earth-bar">
+                    <div id="earth-bar-fill"></div>
+                </div>
+
+                <div id="earth-percent"> 50%</div>
+            </div>
+            
+            <div id="selection-screen">
+                <img id = "screen-image" src = "./client/Shared/LevelSelectScene/Screen.png" />
+            </div>
+        </div>
     </div>
 
     <script src="./phaser.js"></script>

@@ -10,9 +10,13 @@ export class LoginScene extends Phaser.Scene {
     preload() {
         this.load.image('background', './client/Shared/LoginScene/Background.png');
         this.load.audio(
-        'calmAdventureMusic',
-        './client/Shared/Audio/Climate Crusade Theme.wav'
-    );
+            'calmAdventureMusic',
+            './client/Shared/Audio/Climate Crusade Theme.wav'
+        );
+        this.load.audio(
+            'buttonclick',
+            './client/Shared/Audio/UIButton1.mp3'
+        );
     }
 
     create() {
@@ -21,7 +25,7 @@ export class LoginScene extends Phaser.Scene {
 
         if (!GameState.bgMusic) {
             GameState.bgMusic = this.sound.add('calmAdventureMusic', {
-                volume: 0.6,
+                volume: 0.4,
                 loop: true
             });
             GameState.bgMusic.play(); 
@@ -32,6 +36,7 @@ export class LoginScene extends Phaser.Scene {
 
         const loginButton = document.getElementById('login-button');
         const signupLink = document.getElementById('signup-link');
+        const click = this.sound.add('buttonclick', {volume: 1});
 
         signupLink.onclick = () => {
             this.loginUI.style.display = 'none';
@@ -40,6 +45,7 @@ export class LoginScene extends Phaser.Scene {
 
         loginButton.onclick = async () => {
             console.log('Handle Login Reached');
+            click.play();
             this.handleLogin();
         }
     }
@@ -102,7 +108,8 @@ export class LoginScene extends Phaser.Scene {
 
             GameFlowManager.goToFirstTimeCutscene(this);
         } else {
-            GameFlowManager.goToLevelSelect(this);
+            GameFlowManager.goToFirstTimeCutscene(this);
+            //GameFlowManager.goToLevelSelect(this);
         }
     }
 
