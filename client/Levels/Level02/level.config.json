@@ -1,15 +1,15 @@
 {
-  "id": "leve201",
-  "displayName": "Deep Purge",
-  "order": 2,
+  "id": "level01",
+  "displayName": "Acid Downpour",
+  "order": 1,
   "maxStars": 3,
 
   "scenes": {
-    "entry": "Leve201EntryScene",
-    "introCutscene": "Leve201IntroCutscene",
-    "outroCutscene": "Leve201OutroCutscene"
+    "entry": "Level01EntryScene",
+    "introCutscene": "Level01IntroCutscene",
+    "outroCutscene": "Level01OutroCutscene"
   },
 
-  "assetsPath": "./Levels/Leve201/Assets/",
-  "cutscenePath": "./Levels/Leve201/Cutscene/"
+  "assetsPath": "./Levels/Level01/Assets/",
+  "cutscenePath": "./Levels/Level01/Cutscene/"
 }
