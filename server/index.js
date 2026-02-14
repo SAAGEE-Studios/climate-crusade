@@ -85,7 +85,8 @@ app.post('/login', async(req, res) => {
 
         res.json({
             message: 'Login successful',
-            user_id: user.user_id
+            user_id: user.user_id,
+            first_time_play: user.first_time_play
         });
     });
 });
