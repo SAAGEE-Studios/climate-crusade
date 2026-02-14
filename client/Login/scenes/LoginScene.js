@@ -28,7 +28,7 @@ export class LoginScene extends Phaser.Scene {
                 volume: 0.4,
                 loop: true
             });
-            GameState.bgMusic.play(); 
+            GameState.bgMusic.play();
         }
 
         this.loginUI = document.getElementById('login-ui');
@@ -36,11 +36,15 @@ export class LoginScene extends Phaser.Scene {
 
         const loginButton = document.getElementById('login-button');
         const signupLink = document.getElementById('signup-link');
-        const click = this.sound.add('buttonclick', {volume: 1});
+        const click = this.sound.add('buttonclick', { volume: 1 });
 
         signupLink.onclick = () => {
-            this.loginUI.style.display = 'none';
-            GameFlowManager.goToSignup(this);
+            this.cameras.main.fadeOut(200);
+
+            this.cameras.main.once('camerafadeoutcomplete', () => {
+                this.loginUI.style.display = 'none';
+                GameFlowManager.goToSignup(this);
+            });
         }
 
         loginButton.onclick = async () => {
@@ -55,7 +59,7 @@ export class LoginScene extends Phaser.Scene {
         const username = document.getElementById('login-username').value;
         const password = document.getElementById('login-password').value;
 
-        if (!username || !password){
+        if (!username || !password) {
             status.textContent = "Please enter username and password";
             status.style.color = 'red';
 
@@ -71,10 +75,10 @@ export class LoginScene extends Phaser.Scene {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })
             });
-                
+
             const data = await res.json();
 
-            if (!res.ok){
+            if (!res.ok) {
                 status.textContent = "Username or Password Incorrect";
                 status.style.color = 'red';
 
@@ -84,9 +88,9 @@ export class LoginScene extends Phaser.Scene {
 
                 return;
             }
-                
+
             this.onLoginSuccess(data);
-            
+
         } catch (error) {
             alert('Server error. Please try again.');
         }
@@ -98,18 +102,24 @@ export class LoginScene extends Phaser.Scene {
         GameState.isFirstTime = data.first_time_play;
 
         this.loginUI.style.display = 'none';
+        console.log(data.first_time_play);
 
         if (GameState.isFirstTime) {
-            await fetch('https://climate-crusade.onrender.com/mark-first-time-complete', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: GameState.userId })
-            });
+            this.cameras.main.fadeOut(200);
 
-            GameFlowManager.goToFirstTimeCutscene(this);
+            this.cameras.main.once('camerafadeoutcomplete', () => {
+                this.time.delayedCall(500, () => {
+                    GameFlowManager.goToFirstTimeCutscene(this);
+                });
+            });
         } else {
-            GameFlowManager.goToFirstTimeCutscene(this);
-            //GameFlowManager.goToLevelSelect(this);
+            this.cameras.main.fadeOut(200);
+
+            this.cameras.main.once('camerafadeoutcomplete', () => {
+                this.time.delayedCall(500, () => {
+                    GameFlowManager.goToLevelSelect(this);
+                });
+            });
         }
     }
 
@@ -121,5 +131,5 @@ export class LoginScene extends Phaser.Scene {
             this.loginUI.style.display = 'none';
         }
     }
-    
+
 }

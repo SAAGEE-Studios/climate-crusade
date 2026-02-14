@@ -17,5 +17,9 @@ export const GameFlowManager = {
 
     goToFirstTimeCutscene(scene){
         scene.scene.start('FirstTimeCutsceneScene');
+    },
+
+    goToLevel(scene, sceneKey){
+        scene.scene.start(sceneKey);
     }
 };

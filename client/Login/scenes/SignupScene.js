@@ -7,7 +7,7 @@ export class SignupScene extends Phaser.Scene {
     }
 
     preload() {
-        this.load.image('signup_background', './client/Shared/LoginScene/SignupBackground.png');
+        this.load.image('backgroundSignupScene', './client/Shared/LoginScene/SignupBackground.png');
         this.load.audio(
             'buttonclick',
             './client/Shared/Audio/UIButton1.mp3'
@@ -15,7 +15,9 @@ export class SignupScene extends Phaser.Scene {
     }
 
     create() {
-        const bg = this.add.image(0, 0, 'signup_background').setOrigin(0, 0);
+        this.cameras.main.fadeIn(200);
+
+        const bg = this.add.image(0, 0, 'backgroundSignupScene').setOrigin(0, 0);
         bg.setDisplaySize(this.scale.width, this.scale.height);
 
         this.signupUI = document.getElementById('signup-ui');
@@ -26,8 +28,12 @@ export class SignupScene extends Phaser.Scene {
         const clickS = this.sound.add('buttonclick', {volume: 1});
 
         backLink.onclick = () => {
-            this.signupUI.style.display = 'none';
-            this.scene.start('LoginScene');
+            this.cameras.main.fadeOut(200);
+
+            this.cameras.main.once('camerafadeoutcomplete', () => {
+                this.signupUI.style.display = 'none';
+                GameFlowManager.goToLogin(this);
+            });
         };
 
         signupButton.onclick = async () => {
