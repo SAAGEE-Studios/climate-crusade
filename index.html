@@ -318,11 +318,12 @@
         }
         
         #selection-screen {
-            width: 720px;
+            position: absolute;
+            width: 690px;
             flex-shrink: 0;
-            margin-left: 1200px;
-            margin-top: 200px;
-            height: 800px;
+            right: 20px;
+            top: 220px;
+            height: 620px;
             opacity: 0.9;
         }
 
@@ -401,11 +402,35 @@
             margin-top: -30px;
         }
 
+        #select-menu {
+            opacity: 0.8;
+            min-width: 40px;
+            max-width: 150px;
+            margin-right: 1800px;
+            margin-top: 50px;
+            padding-left: 10px;
+            display: flex;
+            text-decoration: none;
+        }
+
+        #logout-button {
+            width: 70px;
+            height: 22px;
+            border-radius: 26px;
+            background: linear-gradient(#0299ec, #4ceaff);
+            color: white;
+            font-family: 'Lumios Typewriter Used';
+            font-size: 15px;
+            border: none;
+            cursor: pointer;
+        }
+
         .level-button,
         #login-ui,
         #signup-ui,
         #skip-handler-1,
-        #selection-screen {
+        #selection-screen,
+        #select-menu {
             pointer-events: auto;
         }
     </style>
@@ -499,6 +524,10 @@
             <div id="selection-screen" style="display: none;">
                 <img id = "screen-image" src = "./client/Shared/LevelSelectScene/Screen.png" />
                 <img class = "play-button" src = "./client/Shared/LevelSelectScene/PlayButton.png" />
+            </div>
+
+            <div id="select-menu" style="display: none;">
+                <button id="logout-button">Logout</button>
             </div>
 
 

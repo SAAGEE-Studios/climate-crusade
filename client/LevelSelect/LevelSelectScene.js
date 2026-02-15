@@ -25,6 +25,15 @@ export class LevelSelectScene extends Phaser.Scene {
         this.earthUI = document.getElementById('earth-ui');
         this.earthUI.style.display = 'flex';
 
+        this.selectMenu = document.getElementById('select-menu');
+        this.selectMenu.style.display = 'flex';
+
+        this.logoutButton = document.getElementById('logout-button');
+
+        this.logoutButton.onclick = () => {
+            this.logout();
+        };
+
         this.playButton = document.getElementsByClassName('play-button')[0];
         this.playButton.onclick = () => {
             this.startSelectedLevel();
@@ -148,6 +157,15 @@ export class LevelSelectScene extends Phaser.Scene {
         percentText.textContent = `${Math.round(healthPercent)}%`;
     }
 
+    logout(){
+        this.cameras.main.fadeOut(200);
+
+        this.cameras.main.once('camerafadeoutcomplete', () => {
+            GameState.reset();
+            GameFlowManager.goToLogin(this);
+        });
+    }
+
     shutdown() {
         if (this.levelUI) {
             this.levelUI.style.display = 'none';
@@ -163,6 +181,10 @@ export class LevelSelectScene extends Phaser.Scene {
 
         if (this.selectionScreen) {
             this.selectionScreen.style.display = 'none';
+        }
+
+        if (this.logoutButton){
+            this.logoutButton.style.display = 'none';
         }
     }
 }
