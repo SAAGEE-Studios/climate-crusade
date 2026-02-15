@@ -35,7 +35,7 @@ export async function login(username, password) {
     return handleResponse(response);
 }
 
-export async function signup(userData) {
+export async function getProgress(userId) {
     const response = await fetch(`${BASE_URL}/progress/${userId}`);
     return handleResponse(response);
 }

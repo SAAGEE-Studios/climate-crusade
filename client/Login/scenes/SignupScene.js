@@ -1,5 +1,6 @@
 import { GameFlowManager } from '../../Core/GameFlowManager.js';
 import { InputValidation } from '../../Core/InputValidation.js';
+import { signup } from '../../Core/api.js';
 
 export class SignupScene extends Phaser.Scene {
     constructor() {
@@ -25,7 +26,7 @@ export class SignupScene extends Phaser.Scene {
 
         const backLink = document.getElementById('back-to-login');
         const signupButton = document.getElementById('signup-button');
-        const clickS = this.sound.add('buttonclick', {volume: 1});
+        const clickS = this.sound.add('buttonclick', { volume: 1 });
 
         backLink.onclick = () => {
             this.cameras.main.fadeOut(200);
@@ -74,40 +75,12 @@ export class SignupScene extends Phaser.Scene {
         }
 
         try {
-            const res = await fetch('https://climate-crusade.onrender.com/signup', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username,
-                    email,
-                    password,
-                    date_of_birth: dob
-                })
+            await signup({
+                username,
+                email,
+                password,
+                date_of_birth: dob
             });
-
-            const data = await res.json();
-
-            if (res.status === 409) {
-                status.textContent = data.error;
-                status.style.color = 'red';
-
-                setTimeout(() => {
-                    status.textContent = "";
-                }, 1200);
-
-                return;
-            }
-
-            if (!res.ok) {
-                status.textContent = 'Signup failed. Please try again.';
-                status.style.color = 'red';
-
-                setTimeout(() => {
-                    status.textContent = "";
-                }, 1200);
-
-                return;
-            }
 
             // SUCCESS
             status.textContent = 'Account created! You can now log in.';
@@ -117,19 +90,22 @@ export class SignupScene extends Phaser.Scene {
                 this.signupUI.style.display = 'none';
                 GameFlowManager.goToLogin(this);
             }, 1200);
-
-        } catch (error){
-            status.textContent = 'Server error. Please try again.';
+        } catch (error) {
+            status.textContent = error.message || 'Signup failed.';
             status.style.color = 'red';
+
+            setTimeout(() => {
+                status.textContent = "";
+            }, 1200);
         }
     }
 
     update() {
-        }
+    }
 
-        shutdown() {
-            if (this.signupUI) {
-                this.signupUI.style.display = 'none';
-            }
+    shutdown() {
+        if (this.signupUI) {
+            this.signupUI.style.display = 'none';
         }
     }
+}

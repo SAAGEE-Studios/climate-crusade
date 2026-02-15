@@ -1,5 +1,6 @@
 import { GameFlowManager } from '../../Core/GameFlowManager.js';
 import { GameState } from '../../Core/GameState.js';
+import { login } from '../../Core/api.js';
 
 export class LoginScene extends Phaser.Scene {
 
@@ -70,29 +71,15 @@ export class LoginScene extends Phaser.Scene {
         }
 
         try {
-            const res = await fetch('https://climate-crusade.onrender.com/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                status.textContent = "Username or Password Incorrect";
-                status.style.color = 'red';
-
-                setTimeout(() => {
-                    status.textContent = "";
-                }, 1500);
-
-                return;
-            }
-
+            const data = await login(username, password);
             this.onLoginSuccess(data);
-
         } catch (error) {
-            alert('Server error. Please try again.');
+            status.textContent = "Username or Password Incorrect";
+            status.style.color = 'red';
+
+            setTimeout(() => {
+                status.textContent = "";
+            }, 1500);
         }
     }
 

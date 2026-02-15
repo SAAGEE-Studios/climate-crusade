@@ -17,6 +17,8 @@ export class FirstTimeCutsceneScene extends Phaser.Scene {
     }
 
     create() {
+        this.events.on('shutdown', this.shutdown, this);
+
         this.skipSceneUI = document.getElementById('skip-handler-1');
         this.skipSceneUI.style.display = 'flex';
 
@@ -66,5 +68,16 @@ export class FirstTimeCutsceneScene extends Phaser.Scene {
 
             GameFlowManager.goToLevelSelect(this);
         });
+    }
+
+
+    shutdown(){
+        if (this.skipSceneUI) {
+            this.skipSceneUI.style.display = 'none';
+        }
+
+        if (this.skipButton) {
+            this.skipButton.style.display = 'none';
+        }
     }
 }

@@ -1,6 +1,7 @@
 import { GameFlowManager } from '../Core/GameFlowManager.js';
 import { GameState } from '../Core/GameState.js';
 import { LEVELS } from '../Core/LevelRegistry.js';
+import { getProgress } from '../Core/api.js';
 
 export class LevelSelectScene extends Phaser.Scene {
     constructor() {
@@ -92,21 +93,10 @@ export class LevelSelectScene extends Phaser.Scene {
 
     async loadProgress() {
         try {
-            const res = await fetch(
-                `https://climate-crusade.onrender.com/progress/${GameState.userId}`
-            );
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                console.error("Failed to load progress");
-                return;
-            }
-
+            const data = await getProgress(GameState.userId);
             this.applyProgressToUI(data.progress);
-
         } catch (err) {
-            console.error("Progress fetch error:", err);
+            console.error("Progress fetch error:", err.message);
         }
     }
 
