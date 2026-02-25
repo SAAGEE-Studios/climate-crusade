@@ -8,6 +8,15 @@ export class AcidDownpourLevel extends Phaser.Scene {
 
         this.idleTimer = null;
         this.jumpVelocity = -570;
+
+        this.maxLives = 3;
+        this.lives = 3;
+    }
+
+    init(data) {
+        if (data.lives !== undefined) {
+            this.lives = data.lives;
+        }
     }
 
     preload() {
@@ -80,13 +89,39 @@ export class AcidDownpourLevel extends Phaser.Scene {
             './client/Levels/Level01/Assets/Tileset/longRectanglePlatform.png'
         );
 
+        this.load.image(
+            'star_item',
+            './client/Levels/Level01/Assets/Items/Star_to_collect.png'
+        );
+
+        this.load.image(
+            'acid_wave',
+            './client/Levels/Level01/Assets/InteractableAssets/acid_wave.png'
+        );
+
+        this.load.image(
+            'score_board',
+            './client/Levels/Level01/Assets/Items/score_board.png'
+        );
+
+        this.load.image(
+            'hearts_health',
+            './client/Levels/Level01/Assets/Items/heart_graphic.png'
+        );
+
+        this.load.image(
+            'push_button',
+            './client/Levels/Level01/Assets/InteractableAssets/push_button.png'
+        );
     }
 
     create() {
+        this.isDying = false;
         this.physics.world.gravity.y = 1200;
         const bg = this.add.image(0, 0, 'Level01Background').setOrigin(0, 0);
         bg.setDisplaySize(this.scale.width, this.scale.height);
         const walkAnimationRate = 8;
+        this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
         this.anims.create({
             key: 'walk_left',
@@ -120,14 +155,26 @@ export class AcidDownpourLevel extends Phaser.Scene {
 
         this.platformMap['secret-platform-2'].setVisible(false);
         this.platformMap['secret-platform-2'].body.enable = false;
+
+        this.createCollectables();
+        this.physics.add.overlap(this.player, this.stars, this.collectStar, null, this);
+
+        this.createAcid();
+        this.physics.add.overlap(this.player, this.acidGroup, this.hitAcid, null, this);
+
+        this.loadBoard();
+        this.updateHearts();
+        this.createButtons();
     }
 
     update() {
         this.handleMovement();
+        this.checkButtonActivation();
+        this.updateButtonVisuals();
     }
 
     createPlayer() {
-        this.player = this.physics.add.sprite(1800, 800, 'green_front');
+        this.player = this.physics.add.sprite(140, 800, 'green_front');
 
         this.player.setScale(3);
         this.player.setCollideWorldBounds(true);
@@ -239,31 +286,269 @@ export class AcidDownpourLevel extends Phaser.Scene {
         this.platformMap = {};
 
         const layout = [
-            { x: 250, y: 960, key: 'platform_medium_2', scale: 1, flipX: false},
-            { x: 670, y: 960, key: 'platform_trapezium_1', scale: 1, flipX: true},
-            { x: 990, y: 900, key: 'platform_piece', scale: 1.25, flipX: false},
-            { x: 1400, y: 960, key: 'platform_medium_2', scale: 1, flipX: false},
-            { x: 1800, y: 960, key: 'platform_square', scale: 1, flipX: false},
-            { x: 1410, y: 720, key: 'platform_medium_1', scale: 0.7, flipX: false},
-            { x: 1660, y: 830, key: 'platform_piece', scale: 1, flipX: false, id: "secret-platform-1"},
-            { x: 1150, y: 600, key: 'platform_square', scale: 0.7, flipX: false},
-            { x: 930, y: 480, key: 'platform_square', scale: 0.7, flipX: false},
-            { x: 380, y: 520, key: 'platform_long_2', scale: 1, flipX: true},
-            { x: 250, y: 250, key: 'platform_medium_2', scale: 1, flipX: false},
-            { x: 1700, y: 250, key: 'platform_medium_2', scale: 1, flipX: false},
-            { x: 550, y: 330, key: 'platform_piece', scale: 0.8, flipX: false},
-            { x: 1380, y: 480, key: 'platform_square', scale: 0.7, flipX: false},
-            { x: 1480, y: 360, key: 'platform_piece', scale: 0.8, flipX: false, id: "secret-platform-2"}
+            { x: 250, y: 960, key: 'platform_medium_2', scale: 1, flipX: false },
+            { x: 670, y: 960, key: 'platform_trapezium_1', scale: 1, flipX: true },
+            { x: 990, y: 900, key: 'platform_piece', scale: 1.25, flipX: false },
+            { x: 1400, y: 960, key: 'platform_medium_2', scale: 1, flipX: false },
+            { x: 1800, y: 960, key: 'platform_square', scale: 1, flipX: false },
+            { x: 1410, y: 720, key: 'platform_medium_1', scale: 0.7, flipX: false },
+            { x: 1660, y: 830, key: 'platform_piece', scale: 1, flipX: false, id: "secret-platform-1" },
+            { x: 1150, y: 600, key: 'platform_square', scale: 0.7, flipX: false },
+            { x: 930, y: 480, key: 'platform_square', scale: 0.7, flipX: false },
+            { x: 380, y: 520, key: 'platform_long_2', scale: 1, flipX: true },
+            { x: 250, y: 250, key: 'platform_medium_2', scale: 1, flipX: false },
+            { x: 1700, y: 250, key: 'platform_medium_2', scale: 1, flipX: false },
+            { x: 550, y: 330, key: 'platform_piece', scale: 0.8, flipX: false },
+            { x: 1380, y: 480, key: 'platform_square', scale: 0.7, flipX: false },
+            { x: 1480, y: 360, key: 'platform_piece', scale: 0.8, flipX: false, id: "secret-platform-2" }
         ];
 
         layout.forEach(p => {
             const platform = this.platforms.create(p.x, p.y, p.key);
             platform.setScale(p.scale).setFlipX(p.flipX).refreshBody();
+            platform.setDepth(1);
 
-             if (p.id) {
+            if (p.id) {
                 this.platformMap[p.id] = platform;
             }
         });
-    } 
+    }
 
-}
+    createCollectables() {
+        this.stars = this.physics.add.group();
+
+        const layout = [
+            { x: 150, y: 415 },
+            { x: 930, y: 420 },
+            { x: 1400, y: 660 }
+        ];
+
+        layout.forEach(s => {
+            const star = this.stars.create(s.x, s.y, 'star_item');
+            star.setScale(0.07);
+            star.body.setAllowGravity(false);
+        })
+    }
+
+    collectStar(player, star) {
+        star.disableBody(true, true);
+
+        if (!this.starsCollected) {
+            this.starsCollected = 0;
+        }
+
+        this.starsCollected++;
+
+        console.log("Stars:", this.starsCollected);
+    }
+
+    createAcid() {
+        this.acidGroup = this.physics.add.staticGroup();
+
+        const acidWidth = 400;
+        const acidY = this.scale.height - 70;
+
+        for (let x = 80; x < this.scale.width; x += acidWidth) {
+            const acid = this.acidGroup.create(x, acidY, 'acid_wave')
+                .setOrigin(0, 1);
+            acid.setDepth(0);
+            acid.setScale(0.8);
+            acid.setAlpha(0.6);
+            this.lastAcid = acid;
+            acid.refreshBody();
+        }
+
+        const remainingWidth = this.scale.width - this.lastAcid.x - 50;
+
+        this.lastAcid.setCrop(0, 0, remainingWidth / 0.8, this.lastAcid.height);
+        this.lastAcid.refreshBody();
+    }
+
+    hitAcid(player, acid) {
+        if (this.isDying) return;
+        this.isDying = true;
+
+        console.log("Player touched acid!");
+
+        player.setTint(0xff0000);
+
+        this.lives--;
+
+        this.updateHearts();
+
+        this.time.delayedCall(600, () => {
+
+            if (this.lives <= 0) {
+                this.gameOver();
+            } else {
+                this.scene.restart({ lives: this.lives });
+                //this.starsCollected = 0;
+            }
+
+        });
+    }
+
+    loadBoard() {
+        const board = this.add.image(this.scale.width / 2 - 60, 60, 'score_board').setOrigin(0, 0);
+        board.setAlpha(0.8);
+
+        this.heartIcons = [];
+
+        const startX = board.x + 45;
+        const startY = board.y + 20;
+        const spacing = 45;
+
+        for (let i = 0; i < this.maxLives; i++) {
+            const heart = this.add.image(startX + i * spacing, startY, 'hearts_health')
+                .setScale(0.3)
+                .setOrigin(0, 0);
+
+            this.heartIcons.push(heart);
+        }
+    }
+
+    updateHearts() {
+
+        for (let i = 0; i < this.maxLives; i++) {
+
+            if (i >= this.lives) {
+                this.heartIcons[i].setTint(0x000000); // black heart
+            }
+        }
+    }
+
+    createButtons() {
+        this.buttons = [];
+
+        const layout = [
+            { x: 80, y: 380, id: "secret-platform-2", flipX: true },
+            { x: this.scale.width - 55, y: 860, id: "secret-platform-1", flipX: false }
+        ];
+
+        layout.forEach(b => {
+            const button = this.add.image(b.x, b.y, 'push_button')
+                .setScale(0.5)
+                .setDepth(2);
+
+            button.secretId = b.id;
+            button.setFlipX(b.flipX);
+
+            this.buttons.push(button);
+        });
+    }
+
+    checkButtonActivation() {
+
+        if (!Phaser.Input.Keyboard.JustDown(this.spaceKey)) return;
+
+        this.buttons.forEach(button => {
+
+            const distance = Phaser.Math.Distance.Between(
+                this.player.x,
+                this.player.y,
+                button.x,
+                button.y
+            );
+
+            if (distance < 80) { // ~10cm in game terms
+                this.activatePlatform(button.secretId);
+            }
+        });
+    }
+
+    updateButtonVisuals() {
+
+        this.buttons.forEach(button => {
+
+            const distance = Phaser.Math.Distance.Between(
+                this.player.x,
+                this.player.y,
+                button.x,
+                button.y
+            );
+
+            if (distance < 80) {
+
+                if (!button.isPulsing) {
+                    button.isPulsing = true;
+
+                    button.pulseTween = this.tweens.add({
+                        targets: button,
+                        alpha: { from: 1, to: 0.6 },
+                        duration: 600,
+                        yoyo: true,
+                        repeat: -1
+                    });
+                }
+
+            } else {
+
+                if (button.isPulsing) {
+                    button.isPulsing = false;
+
+                    button.setAlpha(1);
+
+                    if (button.pulseTween) {
+                        button.pulseTween.stop();
+                    }
+                }
+            }
+        });
+    }
+
+    activatePlatform(id) {
+
+        const platform = this.platformMap[id];
+        if (!platform) return;
+
+        const isActive = platform.visible;
+
+        if (!isActive) {
+
+            // ===== TURN ON =====
+            platform.setVisible(true);
+            platform.body.enable = true;
+
+            platform.setAlpha(0);
+
+            const originalScaleX = platform.scaleX;
+            const originalScaleY = platform.scaleY;
+
+            platform.setScale(originalScaleX * 0.9, originalScaleY * 0.9);
+
+            this.tweens.add({
+                targets: platform,
+                alpha: 1,
+                scaleX: originalScaleX,
+                scaleY: originalScaleY,
+                duration: 250,
+                ease: 'Back.easeOut'
+            });
+
+        } else {
+
+            // ===== TURN OFF =====
+            platform.body.enable = false;
+
+            this.tweens.add({
+                targets: platform,
+                alpha: 0,
+                duration: 250,
+                ease: 'Sine.easeInOut',
+                onComplete: () => {
+                    platform.setVisible(false);
+                }
+            });
+        }
+
+        console.log("Toggled:", id);
+    }
+
+    gameOver() {
+
+        console.log("GAME OVER");
+
+        this.physics.pause();
+        this.player.setTint(0x000000);
+    }
+} 
