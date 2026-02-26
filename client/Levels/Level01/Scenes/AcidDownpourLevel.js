@@ -11,11 +11,19 @@ export class AcidDownpourLevel extends Phaser.Scene {
 
         this.maxLives = 3;
         this.lives = 3;
+        this.collectedStars = new Set();
+
+        this.levers = [];
+        this.leverStates = {};
     }
 
     init(data) {
         if (data.lives !== undefined) {
             this.lives = data.lives;
+        }
+
+        if (data.collectedStars) {
+            this.collectedStars = new Set(data.collectedStars);
         }
     }
 
@@ -113,6 +121,16 @@ export class AcidDownpourLevel extends Phaser.Scene {
             'push_button',
             './client/Levels/Level01/Assets/InteractableAssets/push_button.png'
         );
+
+        this.load.image(
+            'lever_up',
+            './client/Levels/Level01/Assets/InteractableAssets/lever_up.png'
+        );
+
+        this.load.image(
+            'lever_down',
+            './client/Levels/Level01/Assets/InteractableAssets/lever_down.png'
+        );
     }
 
     create() {
@@ -165,6 +183,7 @@ export class AcidDownpourLevel extends Phaser.Scene {
         this.loadBoard();
         this.updateHearts();
         this.createButtons();
+        this.createLevers();
     }
 
     update() {
@@ -323,23 +342,22 @@ export class AcidDownpourLevel extends Phaser.Scene {
             { x: 1400, y: 660 }
         ];
 
-        layout.forEach(s => {
+        layout.forEach((s, index) => {
+
+            if (this.collectedStars.has(index)) return;
+
             const star = this.stars.create(s.x, s.y, 'star_item');
             star.setScale(0.07);
             star.body.setAllowGravity(false);
-        })
+
+            star.starId = index;
+        });
     }
 
     collectStar(player, star) {
         star.disableBody(true, true);
-
-        if (!this.starsCollected) {
-            this.starsCollected = 0;
-        }
-
-        this.starsCollected++;
-
-        console.log("Stars:", this.starsCollected);
+        this.collectedStars.add(star.starId);
+        console.log("Stars:", this.collectedStars.size);
     }
 
     createAcid() {
@@ -381,7 +399,10 @@ export class AcidDownpourLevel extends Phaser.Scene {
             if (this.lives <= 0) {
                 this.gameOver();
             } else {
-                this.scene.restart({ lives: this.lives });
+                this.scene.restart({
+                    lives: this.lives,
+                    collectedStars: Array.from(this.collectedStars)
+                });
                 //this.starsCollected = 0;
             }
 
@@ -428,7 +449,8 @@ export class AcidDownpourLevel extends Phaser.Scene {
         layout.forEach(b => {
             const button = this.add.image(b.x, b.y, 'push_button')
                 .setScale(0.5)
-                .setDepth(2);
+                .setDepth(2)
+                .setAlpha(0.7);
 
             button.secretId = b.id;
             button.setFlipX(b.flipX);
@@ -452,6 +474,20 @@ export class AcidDownpourLevel extends Phaser.Scene {
 
             if (distance < 80) { // ~10cm in game terms
                 this.activatePlatform(button.secretId);
+            }
+        });
+
+        this.levers.forEach(lever => {
+
+            const distance = Phaser.Math.Distance.Between(
+                this.player.x,
+                this.player.y,
+                lever.x,
+                lever.y
+            );
+
+            if (distance < 80) {
+                this.toggleLever(lever);
             }
         });
     }
@@ -486,7 +522,7 @@ export class AcidDownpourLevel extends Phaser.Scene {
                 if (button.isPulsing) {
                     button.isPulsing = false;
 
-                    button.setAlpha(1);
+                    button.setAlpha(0.7);
 
                     if (button.pulseTween) {
                         button.pulseTween.stop();
@@ -542,6 +578,56 @@ export class AcidDownpourLevel extends Phaser.Scene {
         }
 
         console.log("Toggled:", id);
+    }
+
+    createLevers() {
+
+        const layout = [
+            { x: 80, y: this.scale.height - 930, id: "leftLever", flipX: false },
+            { x: this.scale.width - 65, y: this.scale.height - 930, id: "rightLever", flipX: true }
+        ];
+
+        layout.forEach(l => {
+
+            const lever = this.add.image(l.x, l.y, 'lever_up')
+                .setScale(0.5)
+                .setDepth(2)
+                .setFlipX(l.flipX)
+                .setAlpha(0.7);
+
+            lever.leverId = l.id;
+
+            this.leverStates[l.id] = false; // false = up
+
+            this.levers.push(lever);
+        });
+    }
+
+    toggleLever(lever) {
+
+        const id = lever.leverId;
+
+        const isDown = this.leverStates[id];
+
+        if (!isDown) {
+            lever.setTexture('lever_down');
+            this.leverStates[id] = true;
+        } else {
+            lever.setTexture('lever_up');
+            this.leverStates[id] = false;
+        }
+
+        this.checkLevelCompletion();
+    }
+
+    checkLevelCompletion() {
+
+        const allDown = Object.values(this.leverStates).every(state => state === true);
+
+        if (allDown) {
+            console.log("LEVEL COMPLETE");
+            this.physics.pause();
+        }
     }
 
     gameOver() {
