@@ -8,11 +8,14 @@ import { Level04_CutsceneScene } from '../Levels/Level04/Cutscene/CutsceneScene.
 import { SpaceJunkLevel } from '../Levels/Level04/Scenes/space_junk_level.js';
 
 export const SCENES = [
-  // IntroScene,
-  // LoginScene,
-  // SignupScene,
-  // ValidationTests,
-  // AcidDownpourLevel,
+  //ValidationTests,
+  //IntroScene,
+  //LoginScene,
+  //SignupScene,
+  //FirstTimeCutsceneScene,
+  //LevelSelectScene,
+  //Level01EntryScene,
+  AcidDownpourLevel,
   Level04_EntryScene,
   Level04_CutsceneScene,
   SpaceJunkLevel,
