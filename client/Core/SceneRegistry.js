@@ -6,6 +6,9 @@
 //import { LevelSelectScene } from '../LevelSelect/LevelSelectScene.js';
 //import { Level01EntryScene } from '../Levels/Level01/Level01EntryScene.js';
 import { AcidDownpourLevel } from '../Levels/Level01/Scenes/AcidDownpourLevel.js';
+import { Level04_EntryScene } from '../Levels/Level04/EntryScene.js';
+import { Level04_CutsceneScene } from '../Levels/Level04/Cutscene/CutsceneScene.js';
+import { SpaceJunkLevel } from '../Levels/Level04/Scenes/space_junk_level.js';
 
 export const SCENES = [
   //ValidationTests,
@@ -16,4 +19,7 @@ export const SCENES = [
   //LevelSelectScene,
   //Level01EntryScene,
   AcidDownpourLevel,
+  Level04_EntryScene,
+  Level04_CutsceneScene,
+  SpaceJunkLevel,
 ];
