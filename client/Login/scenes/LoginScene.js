@@ -1,5 +1,6 @@
 import { GameFlowManager } from '../../Core/GameFlowManager.js';
 import { GameState } from '../../Core/GameState.js';
+import { login } from '../../Core/api.js';
 
 export class LoginScene extends Phaser.Scene {
 
@@ -8,23 +9,21 @@ export class LoginScene extends Phaser.Scene {
     }
 
     preload() {
-        this.load.image('background', './client/Shared/LoginScene/Background.png');
-        this.load.audio(
-        'calmAdventureMusic',
-        './client/Shared/Audio/Climate Crusade Theme.wav'
-    );
+        this.load.image('backgroundLoginScene', './client/Shared/LoginScene/Background.png');
+        this.load.audio('calmAdventureMusic', './client/Shared/Audio/Climate Crusade Theme.wav');
+        this.load.audio('buttonclick', './client/Shared/Audio/UIButton1.mp3');
     }
 
     create() {
-        const bg = this.add.image(0, 0, 'background').setOrigin(0, 0);
+        const bg = this.add.image(0, 0, 'backgroundLoginScene').setOrigin(0, 0);
         bg.setDisplaySize(this.scale.width, this.scale.height);
 
         if (!GameState.bgMusic) {
             GameState.bgMusic = this.sound.add('calmAdventureMusic', {
-                volume: 0.6,
+                volume: 0.4,
                 loop: true
             });
-            GameState.bgMusic.play(); 
+            GameState.bgMusic.play();
         }
 
         this.loginUI = document.getElementById('login-ui');
@@ -32,16 +31,21 @@ export class LoginScene extends Phaser.Scene {
 
         const loginButton = document.getElementById('login-button');
         const signupLink = document.getElementById('signup-link');
+        const click = this.sound.add('buttonclick', { volume: 1 });
 
         signupLink.onclick = () => {
-            this.loginUI.style.display = 'none';
-            GameFlowManager.goToSignup(this);
-        }
+            this.cameras.main.fadeOut(200);
+
+            this.cameras.main.once('camerafadeoutcomplete', () => {
+                this.loginUI.style.display = 'none';
+                GameFlowManager.goToSignup(this);
+            });
+        };
 
         loginButton.onclick = async () => {
-            console.log('Handle Login Reached');
-            this.handleLogin();
-        }
+            click.play();
+            await this.handleLogin();
+        };
     }
 
     async handleLogin() {
@@ -49,64 +53,36 @@ export class LoginScene extends Phaser.Scene {
         const username = document.getElementById('login-username').value;
         const password = document.getElementById('login-password').value;
 
-        if (!username || !password){
+        if (!username || !password) {
             status.textContent = "Please enter username and password";
             status.style.color = 'red';
-
-            setTimeout(() => {
-                status.textContent = "";
-            }, 1500);
+            setTimeout(() => status.textContent = "", 1500);
             return;
         }
 
         try {
-            const res = await fetch('https://climate-crusade.onrender.com/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-                
-            const data = await res.json();
+            const data = await login(username, password);
 
-            if (!res.ok){
-                status.textContent = "Username or Password Incorrect";
-                status.style.color = 'red';
+            GameState.userId = data.user_id;
+            GameState.isFirstTime = data.first_time_play;
 
-                setTimeout(() => {
-                    status.textContent = "";
-                }, 1500);
+            this.loginUI.style.display = 'none';
 
-                return;
-            }
-                
-            this.onLoginSuccess(data);
-            
-        } catch (error) {
-            alert('Server error. Please try again.');
-        }
-    }
+            this.cameras.main.fadeOut(200);
 
-
-    async onLoginSuccess(data) {
-        GameState.userId = data.user_id;
-        GameState.isFirstTime = data.first_time_play;
-
-        this.loginUI.style.display = 'none';
-
-        if (GameState.isFirstTime) {
-            await fetch('https://climate-crusade.onrender.com/mark-first-time-complete', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: GameState.userId })
+            this.cameras.main.once('camerafadeoutcomplete', () => {
+                if (GameState.isFirstTime) {
+                    GameFlowManager.goToFirstTimeCutscene(this);
+                } else {
+                    GameFlowManager.goToLevelSelect(this);
+                }
             });
 
-            GameFlowManager.goToFirstTimeCutscene(this);
-        } else {
-            GameFlowManager.goToLevelSelect(this);
+        } catch (err) {
+            status.textContent = "Username or Password Incorrect";
+            status.style.color = 'red';
+            setTimeout(() => status.textContent = "", 1500);
         }
-    }
-
-    update() {
     }
 
     shutdown() {
@@ -114,5 +90,4 @@ export class LoginScene extends Phaser.Scene {
             this.loginUI.style.display = 'none';
         }
     }
-    
 }

@@ -1,0 +1,15 @@
+{
+  "id": "level01",
+  "displayName": "Acid Downpour",
+  "order": 1,
+  "maxStars": 3,
+
+  "scenes": {
+    "entry": "Level01EntryScene",
+    "introCutscene": "Level01IntroCutscene",
+    "outroCutscene": "Level01OutroCutscene"
+  },
+
+  "assetsPath": "./Levels/Level01/Assets/",
+  "cutscenePath": "./Levels/Level01/Cutscene/"
+}

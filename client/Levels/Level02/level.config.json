@@ -1,0 +1,15 @@
+{
+  "id": "level02",
+  "displayName": "Deep Purge",
+  "order": 1,
+  "maxStars": 3,
+
+  "scenes": {
+    "entry": "Level02EntryScene",
+    "introCutscene": "Level02IntroCutscene",
+    "outroCutscene": "Level02OutroCutscene"
+  },
+
+  "assetsPath": "./Levels/Level02/Assets/",
+  "cutscenePath": "./Levels/Level02/Cutscene/"
+}

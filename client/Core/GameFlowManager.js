@@ -21,6 +21,10 @@ export const GameFlowManager = {
         scene.scene.start('Level04_EntryScene');
     },
 
+    goToLevel(scene, sceneKey){
+        scene.scene.start(sceneKey);
+    },
+
     onLevelComplete(scene, levelId){
         scene.scene.start('LoginScene');
     }

@@ -1,5 +1,6 @@
 import { GameFlowManager } from '../../Core/GameFlowManager.js';
 import { InputValidation } from '../../Core/InputValidation.js';
+import { signup } from '../../Core/api.js';
 
 export class SignupScene extends Phaser.Scene {
     constructor() {
@@ -7,11 +8,17 @@ export class SignupScene extends Phaser.Scene {
     }
 
     preload() {
-        this.load.image('signup_background', './client/Shared/LoginScene/SignupBackground.png');
+        this.load.image('backgroundSignupScene', './client/Shared/LoginScene/SignupBackground.png');
+        this.load.audio(
+            'buttonclick',
+            './client/Shared/Audio/UIButton1.mp3'
+        );
     }
 
     create() {
-        const bg = this.add.image(0, 0, 'signup_background').setOrigin(0, 0);
+        this.cameras.main.fadeIn(200);
+
+        const bg = this.add.image(0, 0, 'backgroundSignupScene').setOrigin(0, 0);
         bg.setDisplaySize(this.scale.width, this.scale.height);
 
         this.signupUI = document.getElementById('signup-ui');
@@ -19,19 +26,25 @@ export class SignupScene extends Phaser.Scene {
 
         const backLink = document.getElementById('back-to-login');
         const signupButton = document.getElementById('signup-button');
+        const clickS = this.sound.add('buttonclick', { volume: 1 });
 
         backLink.onclick = () => {
-            this.signupUI.style.display = 'none';
-            this.scene.start('LoginScene'); 
+            this.cameras.main.fadeOut(200);
+
+            this.cameras.main.once('camerafadeoutcomplete', () => {
+                this.signupUI.style.display = 'none';
+                GameFlowManager.goToLogin(this);
+            });
         };
 
         signupButton.onclick = async () => {
             console.log('Handle Signup Reached');
-            this.handleLogin();
+            clickS.play();
+            this.handleSignup();
         }
     }
 
-    async handleLogin() {
+    async handleSignup() {
         const status = document.getElementById('signup-status');
         const username = document.getElementById('signup-username').value;
         const password = document.getElementById('signup-password').value;
@@ -39,7 +52,7 @@ export class SignupScene extends Phaser.Scene {
         const dob = document.getElementById('signup-dob').value;
 
         // Case 1: One or more fields empty
-        if (!username || !password || !email || !dob){
+        if (!username || !password || !email || !dob) {
             status.textContent = "Please enter username and password";
             status.style.color = 'red';
 
@@ -50,16 +63,41 @@ export class SignupScene extends Phaser.Scene {
         }
 
         if (!InputValidation.validateUsername(username) || !InputValidation.validatePassword(password)
-        || !InputValidation.validateEmail(email) || !InputValidation.validateDateOfBirth(dob)){
+            || !InputValidation.validateEmail(email) || !InputValidation.validateDateOfBirth(dob)) {
             status.textContent = "Invalid User Information";
             status.style.color = 'red';
 
             setTimeout(() => {
                 status.textContent = "";
             }, 1500);
+
             return;
         }
 
+        try {
+            await signup({
+                username,
+                email,
+                password,
+                date_of_birth: dob
+            });
+
+            // SUCCESS
+            status.textContent = 'Account created! You can now log in.';
+            status.style.color = 'green';
+
+            setTimeout(() => {
+                this.signupUI.style.display = 'none';
+                GameFlowManager.goToLogin(this);
+            }, 1200);
+        } catch (error) {
+            status.textContent = error.message || 'Signup failed.';
+            status.style.color = 'red';
+
+            setTimeout(() => {
+                status.textContent = "";
+            }, 1200);
+        }
     }
 
     update() {
