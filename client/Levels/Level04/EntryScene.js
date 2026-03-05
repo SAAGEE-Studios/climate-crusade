@@ -84,8 +84,18 @@ export class Level04_EntryScene extends Phaser.Scene {
             repeat: -1
         });
 
+        this.add.text(960, 920, '[ Press ESC to return to Level Select ]', {
+            fontSize: '18px',
+            fontFamily: 'Arial',
+            color: '#666688'
+        }).setOrigin(0.5);
+
         this.input.keyboard.once('keydown-SPACE', () => {
             this.scene.start('Level04_CutsceneScene');
+        });
+
+        this.input.keyboard.once('keydown-ESC', () => {
+            this.scene.start('LevelSelectScene');
         });
     }
 
