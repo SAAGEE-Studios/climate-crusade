@@ -26,6 +26,6 @@ export const GameFlowManager = {
     },
 
     onLevelComplete(scene, levelId){
-        scene.scene.start('LoginScene');
+        scene.scene.start('LevelSelectScene');
     }
 };
