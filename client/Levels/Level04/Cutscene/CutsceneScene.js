@@ -1,6 +1,6 @@
-export class Level04_CutsceneScene extends Phaser.Scene {
+export class Level04CutsceneScene extends Phaser.Scene {
     constructor() {
-        super('Level04_CutsceneScene');
+        super('Level04CutsceneScene');
     }
 
     create() {

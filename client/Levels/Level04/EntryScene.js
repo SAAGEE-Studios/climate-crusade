@@ -1,6 +1,6 @@
-export class Level04_EntryScene extends Phaser.Scene {
+export class Level04EntryScene extends Phaser.Scene {
     constructor() {
-        super('Level04_EntryScene');
+        super('Level04EntryScene');
     }
 
     create() {
@@ -85,7 +85,7 @@ export class Level04_EntryScene extends Phaser.Scene {
         });
 
         this.input.keyboard.once('keydown-SPACE', () => {
-            this.scene.start('Level04_CutsceneScene');
+            this.scene.start('Level04CutsceneScene');
         });
     }
 
