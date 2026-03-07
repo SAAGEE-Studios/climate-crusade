@@ -12,7 +12,7 @@ export class Level03EntryScene extends Phaser.Scene{
     }
 
     create(){
-        this.scene.start('SunkenWellsMainGameplayScene', {
+        this.scene.start('SunkenWellsLevel', {
             levelId: 'level03'
         });
     }

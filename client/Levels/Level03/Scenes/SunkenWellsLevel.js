@@ -1,9 +1,9 @@
  import { GameFlowManager } from '../../../Core/GameFlowManager.js';
 import { GameState } from '../../../Core/GameState.js';
 
-export class SunkenWellsMainGameplayScene extends Phaser.Scene {
+export class SunkenWellsLevel extends Phaser.Scene {
   constructor() {
-    super('SunkenWellsMainGameplayScene');
+    super('SunkenWellsLevel');
   }
 
   preload(){
