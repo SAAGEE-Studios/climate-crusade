@@ -15,7 +15,7 @@ import { SunkenWellsLevel } from '../Levels/Level03/Scenes/SunkenWellsLevel.js';
 
 import { Level04_EntryScene } from '../Levels/Level04/EntryScene.js';
 import { Level04_CutsceneScene } from '../Levels/Level04/Cutscene/CutsceneScene.js';
-import { SpaceJunkLevel } from '../Levels/Level04/Scenes/space_junk_level.js';
+import { SpaceJunkLevel } from '../Levels/Level04/Scenes/SpaceJunkLevel.js';
 
 export const SCENES = [
   //IntroScene,
