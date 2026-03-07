@@ -1,10 +1,14 @@
 {
-    "id": "level04",
-    "name": "Space Junk",
-    "description": "Debris and pollutants in Earth's upper atmosphere are depleting the ozone layer. Guide Alvin's ship through orbit and clear the space junk to help restore Earth's protective shield.",
-    "entryScene": "Level04_EntryScene",
-    "hasCutscene": true,
-    "cutsceneScene": "Level04_CutsceneScene",
-    "climate_issue": "Ozone Layer Depletion",
-    "location": "Earth's Upper Atmosphere"
+  "id": "level04",
+  "displayName": "Space Junk",
+  "order": 4,
+  "maxStars": 3,
+
+  "scenes": {
+    "entry": "Level04EntryScene",
+    "introCutscene": "Level04IntroCutscene"
+  },
+
+  "assetsPath": "./Levels/Level04/Assets/",
+  "cutscenePath": "./Levels/Level04/Cutscene/"
 }
