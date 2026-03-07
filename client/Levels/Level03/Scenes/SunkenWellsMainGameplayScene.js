@@ -7,25 +7,17 @@ export class SunkenWellsMainGameplayScene extends Phaser.Scene {
   }
 
   preload(){
-    this.makeRectTexture("bg", 32, 32, 0xEDC9AF);
-    this.makeRectTexture("block", 32, 32, 0xb59b5a);
-    this.makeRectTexture("trap", 32, 32, 0xd36b6b);
+    this.load.image("bg", './client/Levels/Level03/Assets/2levels.png');
+    this.load.image("block", './client/Levels/Level03/Assets/sandstone_blocktile.png');
+    this.load.image("trap", './client/Levels/Level03/Assets/sandstone_traptile.png');
     this.makeRectTexture("air", 24, 24, 0x8bd3ff);
     this.makeRectTexture("star", 24, 24, 0xffd34d);
-    this.makeRectTexture("shield", 24, 24, 0x6df2a2);
-    this.makeRectTexture("drill", 24, 24, 0xa08bff);
+    this.load.image("shield", './client/Levels/Level03/Assets/shield.png');
+    this.load.image("drill", './client/Levels/Level03/Assets/drill.png');
     this.makeRectTexture("player", 24, 28, 0xffffff);
   }
 
   create(initData) {
-    // --- Hide Level Select DOM overlay (otherwise it can cover the canvas) ---
-    const ids = ['level-select-ui', 'earth-ui', 'select-menu', 'selection-screen'];
-    ids.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = 'none';
-    });
-
-
     // Grid configuration
     this.COLS = 9;
     this.ROWS = 50;
@@ -41,21 +33,25 @@ export class SunkenWellsMainGameplayScene extends Phaser.Scene {
     //9 tiles per row
     this.TILE = Math.floor(this.gridWidthPx/this.COLS);
 
+    console.log(this.scale.width, this.gridWidthPx, this.TILE)
+
 //GRID SIZE
     this.worldW = this.COLS * this.TILE;
     this.worldH = this.ROWS * this.TILE;
 
-     this.gridOffsetX = Math.floor((this.scale.width - this.gridWidthPx) / 2);
+    this.gridOffsetX = Math.floor((this.scale.width - this.worldW) / 2);
+    console.log("leftMarginPx", this.gridOffsetX, "gridPx", this.worldW, "rightMarginPx", this.scale.width - (this.gridOffsetX + this.worldW));
 
     this.visibleRows = Math.floor(this.gridHeightPx / this.TILE);
 
     //BACKGROUND (NEEDS ASSETS)
     const background = this.add.image(0, 0, 'bg').setOrigin(0,0);
+    background.setScrollFactor(0);
     background.setDisplaySize(this.scale.width, this.scale.height);
     background.setDepth(-10);
 
     //MECHANICS(HARD STUFF)
-
+    
     //oxygen
     this.oxygenMax = 100;
     this.oxygen = this.oxygenMax;
@@ -77,8 +73,8 @@ export class SunkenWellsMainGameplayScene extends Phaser.Scene {
     // this.drillEndsAt = 0;
 
     // // Stars
-    // this.totalStars = 3;
-    // this.starsCollected = 0;
+    this.totalStars = 3;
+    this.starsCollected = 0;
 
     // // Row hazard: wind/sand slide
     // this.windEveryMs = 0 //Math.random() * (18000 - 13000) + 13000;
@@ -104,11 +100,11 @@ export class SunkenWellsMainGameplayScene extends Phaser.Scene {
       Array(this.COLS).fill(this.TILE_BLOCK)
     );
 
-    // this.placeStarsInBands();
-    // this.scatterTiles(this.TILE_AIR, 8);
-    // this.scatterTiles(this.TILE_TRAP, 7);
-    // this.scatterTiles(this.TILE_SHIELD, 3);
-    // this.scatterTiles(this.TILE_DRILL, 3);
+    this.placeStarsInBands();
+    this.scatterTiles(this.TILE_AIR, 8);
+    this.scatterTiles(this.TILE_TRAP, 7);
+    this.scatterTiles(this.TILE_SHIELD, 3);
+    this.scatterTiles(this.TILE_DRILL, 3);
 
     //physics + render
     this.blocksGroup = this.physics.add.staticGroup();
@@ -116,12 +112,12 @@ export class SunkenWellsMainGameplayScene extends Phaser.Scene {
     this.renderAllTiles();
 
     //bounds
-    const boundsX = this.gridOffsetX;
+    const boundsX = 0;
     const boundsY = 0;
-    const boundsW = this.worldW;
+    const boundsW = this.scale.width;
     const boundsH = this.gridOffsetY + this.worldH;
 
-    this.physics.world.setBounds(boundsX, boundsY, boundsW, boundsH);
+    this.physics.world.setBounds(boundsX + this.gridOffsetX, boundsY, boundsW - this.gridOffsetX, boundsH);
     this.physics.world.gravity.y = 600;
 
     //player
@@ -133,7 +129,7 @@ export class SunkenWellsMainGameplayScene extends Phaser.Scene {
     this.player.setCollideWorldBounds(true);
 
     this.physics.add.collider(this.player, this.blocksGroup);
-    // this.physics.add.overlap(this.player, this.pickupsGroup, this.onPickup, null, this);
+    this.physics.add.overlap(this.player, this.pickupsGroup, this.onPickup, null, this);
 
     //CAMERA CONTROL
     const desiredPlayerScreenY = this.gridOffsetY + Math.floor(this.gridHeightPx / 2);
@@ -158,12 +154,14 @@ export class SunkenWellsMainGameplayScene extends Phaser.Scene {
 
     this.hintText = this.add
       .text(12, 70, "Move: WASD/Arrows\nDig: E (use direction keys)\nPowerups activate on pickup", {
-        fontSize: "14px",
+        fontSize: "20px",
       })
       .setScrollFactor(0); 
+
   }
 
   update(time, delta) {
+
     if (this.ended) return;
     // // WIN CHECK: if the player passes the bottom row, win immediately.
     // if (this.hasReachedWaterline()) {
@@ -174,7 +172,7 @@ export class SunkenWellsMainGameplayScene extends Phaser.Scene {
     const dt = delta / 1000;
 
     // Oxygen drain
-    this.oxygen = Math.max(0, this.oxygen - this.oxygenDrainPerSec * dt);
+    //this.oxygen = Math.max(0, this.oxygen - this.oxygenDrainPerSec * dt);
     if (this.oxygen <= 0){
       this.ended = true;
       this.physics.pause();
@@ -201,7 +199,7 @@ export class SunkenWellsMainGameplayScene extends Phaser.Scene {
     else this.player.setVelocityX(0);
 
     if (up && this.player.body.blocked.down) {
-      this.player.setVelocityY(-330);
+      this.player.setVelocityY(-500);
     }
   }
 
@@ -234,10 +232,10 @@ export class SunkenWellsMainGameplayScene extends Phaser.Scene {
       return;
     }
 
-    // if (t === this.TILE_TRAP) {
-    //   this.setTile(target.r, target.c, this.TILE_EMPTY);
-    //   this. explodeAt(target.r, target.c);
-    // }
+    if (t === this.TILE_TRAP) {
+      this.setTile(target.r, target.c, this.TILE_EMPTY);
+      this.takeDamage(this.oxygenDrainPerDamage);
+    }
   }
 
   getDigDirection() {
@@ -266,62 +264,51 @@ export class SunkenWellsMainGameplayScene extends Phaser.Scene {
 
     // Spawn sprite if newType is not empty
     if (newType !== this.TILE_EMPTY) {
-      this._spawnTileSprite(r, c, newType);
+      this.spawnTileSprite(r, c, newType);
     }
   }
 
-  // explodeAt(r, c) {
-  //   // Damage player if close
-  //   const ex = this.gridToWorldX(c);
-  //   const ey = this.gridToWorldY(r);
-  //   const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, ex, ey);
+  onPickup(player, pickup) {
+    const type = pickup.getData("type");
 
-  //   if (dist < this.TILE * 2.0) {
-  //     this. takeDamage(this.damageOxygenDrain);
-  //   } 
-  // }
+    if (type === "air") {
+      this.oxygen = Math.min(this.oxygenMax, this.oxygen + this.airRefillAmount);
+      pickup.destroy();
+      return;
+    }
 
-  // onPickup(player, pickup) {
-  //   const type = pickup.getData("type");
+    if (type === "star") {
+      this.starsCollected = Math.min(this.totalStars, this.starsCollected + 1);
+      pickup.destroy();
+      return;
+    }
 
-  //   if (type === "air") {
-  //     this.oxygen = Math.min(this.oxygenMax, this.oxygen + this.airRefillAmount);
-  //     pickup.destroy();
-  //     return;
-  //   }
+    const now = this.time.now;
 
-  //   if (type === "star") {
-  //     this.starsCollected = Math.min(this.totalStars, this.starsCollected + 1);
-  //     pickup.destroy();
-  //     return;
-  //   }
+    if (type === "shield") {
+      this.shieldActive = true;
+      this.shieldHitsLeft = 2;
+      this.shieldEndsAt = now + 10000; // refresh
+      pickup.destroy();
+      return;
+    }
 
-  //   const now = this.time.now;
+    if (type === "drill") {
+      this.drillActive = true;
+      this.drillEndsAt = now + 10000; // refresh
+      pickup.destroy();
+      return;
+    }
+  }
 
-  //   if (type === "shield") {
-  //     this.shieldActive = true;
-  //     this.shieldHitsLeft = 2;
-  //     this.shieldEndsAt = now + 10000; // refresh
-  //     pickup.destroy();
-  //     return;
-  //   }
-
-  //   if (type === "drill") {
-  //     this.drillActive = true;
-  //     this.drillEndsAt = now + 10000; // refresh
-  //     pickup.destroy();
-  //     return;
-  //   }
-  // }
-
-  // takeDamage(extraOxygenDrain) {
-  //   if (this.shieldActive && this.shieldHitsLeft > 0) {
-  //     this.shieldHitsLeft -= 1;
-  //     if (this.shieldHitsLeft <= 0) this.shieldActive = false;
-  //     return;
-  //   }
-  //   this.oxygen = Math.max(0, this.oxygen - extraOxygenDrain);
-  // }
+  takeDamage(extraOxygenDrain) {
+     if (this.shieldActive && this.shieldHitsLeft > 0) {
+       this.shieldHitsLeft -= 1;
+       if (this.shieldHitsLeft <= 0) this.shieldActive = false;
+       return;
+     }
+     this.oxygen = Math.max(0, this.oxygen - extraOxygenDrain);
+  }
 
 
   renderAllTiles() {
@@ -340,7 +327,7 @@ export class SunkenWellsMainGameplayScene extends Phaser.Scene {
       const b = this.blocksGroup.create(x, y, "block");
       b.setData("r", r);
       b.setData("c", c);
-      b.setScale(this.TILE / 32);
+      b.setScale(this.TILE / 1024);
       b.refreshBody();
       return;
     }
@@ -349,13 +336,13 @@ export class SunkenWellsMainGameplayScene extends Phaser.Scene {
       const b = this.blocksGroup.create(x, y, "trap");
       b.setData("r", r);
       b.setData("c", c);
-      b.setScale(this.TILE / 32);
+      b.setScale(this.TILE / 1024);
       b.refreshBody();
       return;
     }
 
     // Pickups: scale to look centered in a tile
-    const pickupScale = Math.min(1, this.TILE / 40);
+    const pickupScale = Math.min(3, this.TILE / 20);
 
     if (t === this.TILE_AIR) {
       const p = this.pickupsGroup.create(x, y, "air");
@@ -374,18 +361,59 @@ export class SunkenWellsMainGameplayScene extends Phaser.Scene {
     if (t === this.TILE_SHIELD) {
       const p = this.pickupsGroup.create(x, y, "shield");
       p.setData("type", "shield");
-      p.setScale(pickupScale);
+      p.setScale(this.TILE / (1024*2));
+      const hitbox = Math.floor(this.TILE * 0.7);
+      p.setSize(hitbox, hitbox, true);
+      p.refreshBody();
       return;
     }
 
     if (t === this.TILE_DRILL) {
       const p = this.pickupsGroup.create(x, y, "drill");
       p.setData("type", "drill");
-      p.setScale(pickupScale);
+      p.setScale(this.TILE / (1024*2));
+      const hitbox = Math.floor(this.TILE * 0.7);
+      p.setSize(hitbox, hitbox, true);
+      p.refreshBody();
       return;
     }
   }
 
+
+  //PLACES THE STARS AT SPECIFIC RANGES
+  placeStarsInBands() {
+    const bands = [
+      { rMin: 10, rMax: 18},
+      { rMin: 22, rMax: 32},
+      { rMin: 35, rMax: 47}
+    ];
+
+    for (const band of bands){
+      for (let tries = 0; tries < 200; tries++){
+        const r = Phaser.Math.Between(band.rMin, band.rMax);
+        const c = Phaser.Math.Between(1, this.COLS - 2);
+        if (this.grid[r][c] === this.TILE_BLOCK){
+          this.grid[r][c] = this.TILE_STAR;
+          break;
+        }
+      }
+    }
+  }
+
+  scatterTiles(type, count){
+    let placed = 0;
+    let tries = 0;
+    
+    while (placed < count && tries <4000){
+      tries++;
+      const r = Phaser.Math.Between(5, this.ROWS -3);
+      const c = Phaser.Math.Between(0, this.COLS -1);
+      if (this.grid[r][c] === this.TILE_BLOCK){
+        this.grid[r][c] = type;
+        placed++;
+      }
+    }
+  }
 
   //GRID TO COORDINATES
   inBounds(r, c) {
