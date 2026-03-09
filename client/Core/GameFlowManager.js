@@ -21,5 +21,9 @@ export const GameFlowManager = {
 
     goToLevel(scene, sceneKey){
         scene.scene.start(sceneKey);
+    },
+
+    onLevelComplete(scene, levelId){
+        scene.scene.start('LevelSelectScene');
     }
 };

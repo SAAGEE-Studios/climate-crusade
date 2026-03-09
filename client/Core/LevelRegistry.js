@@ -10,5 +10,9 @@ export const LEVELS = [
     {
         id: "level03",
         configPath: "./client/Levels/Level03/level.config.json"
+    },
+    {
+        id: "level04",
+        configPath: "./client/Levels/Level04/level.config.json"
     }
 ];

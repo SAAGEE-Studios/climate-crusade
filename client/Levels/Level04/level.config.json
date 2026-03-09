@@ -1,0 +1,14 @@
+{
+  "id": "level04",
+  "displayName": "Space Junk",
+  "order": 4,
+  "maxStars": 3,
+
+  "scenes": {
+    "entry": "Level04EntryScene",
+    "introCutscene": "Level04IntroCutscene"
+  },
+
+  "assetsPath": "./Levels/Level04/Assets/",
+  "cutscenePath": "./Levels/Level04/Cutscene/"
+}
