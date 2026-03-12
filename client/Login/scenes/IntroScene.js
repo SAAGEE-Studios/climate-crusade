@@ -17,7 +17,7 @@ export class IntroScene extends Phaser.Scene {
 
     create() {
         const video = this.add.video(this.scale.width/2,this.scale.height/2,'introVideo').setOrigin(0.5, 0.5);
-        video.setDisplaySize(this.scale.width/16, this.scale.height/12);
+        video.setDisplaySize(this.scale.width/15, this.scale.height/8.4);
         video.setMute(true);
         video.play(true);
 
