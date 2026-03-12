@@ -21,6 +21,6 @@ export class Level02EntryScene extends Phaser.Scene {
     }
 
     create() {
-        this.scene.start("Level02GameScene");
+        this.scene.start("DeepPurgeLevel");
     }
 }
