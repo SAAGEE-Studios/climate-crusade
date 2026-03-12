@@ -8,7 +8,7 @@ export class IntroScene extends Phaser.Scene {
     preload() {
         this.load.video(
             'introVideo',
-            './client/Shared/IntroScenes/IntroScreen1.mp4',
+            'client/Shared/IntroScenes/IntroScreen1.mp4',
             'loadeddata',
             false,
             true
