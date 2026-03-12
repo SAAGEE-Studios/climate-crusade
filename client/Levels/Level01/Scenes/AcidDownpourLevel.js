@@ -1,5 +1,6 @@
 import { GameFlowManager } from '../../../Core/GameFlowManager.js';
 import { GameState } from '../../../Core/GameState.js';
+import { saveProgress } from '../../Core/api.js';
 
 export class AcidDownpourLevel extends Phaser.Scene {
 
@@ -18,6 +19,7 @@ export class AcidDownpourLevel extends Phaser.Scene {
 
         this.levelFinished = false;
         this.isGameOver = false;
+        this.isPausedMenuOpen = false;
     }
 
     init(data) {
@@ -158,6 +160,8 @@ export class AcidDownpourLevel extends Phaser.Scene {
         this.isDying = false;
 
         this.physics.resume();
+        this.input.keyboard.resetKeys();
+        this.isPausedMenuOpen = false;
 
         this.physics.world.gravity.y = 1200;
         const bg = this.add.image(0, 0, 'Level01Background').setOrigin(0, 0);
@@ -218,12 +222,33 @@ export class AcidDownpourLevel extends Phaser.Scene {
 
     update() {
         if (Phaser.Input.Keyboard.JustDown(this.escKey)) {
+            if (!this.isPausedMenuOpen && !this.levelFinished && !this.isGameOver) {
+                this.openPauseMenu();
+                return;
+            }
 
             if (this.isGameOver || this.levelFinished) {
 
                 this.scene.start('Level01EntryScene');
                 return;
             }
+        }
+
+        if (this.isPausedMenuOpen) {
+
+            if (Phaser.Input.Keyboard.JustDown(this.confirmKey)) {
+                this.physics.resume();
+                this.isPausedMenuOpen = false;
+                this.scene.start('Level01EntryScene');
+                return;
+            }
+
+            if (Phaser.Input.Keyboard.JustDown(this.cancelKey)) {
+                this.closePauseMenu();
+                return;
+            }
+
+            return;
         }
 
         if (this.levelFinished) {
@@ -932,6 +957,69 @@ export class AcidDownpourLevel extends Phaser.Scene {
             duration: 500,
             ease: 'Sine.easeOut'
         });
+    }
+
+    openPauseMenu() {
+        this.isPausedMenuOpen = true;
+        this.physics.pause();
+
+        // Dark overlay
+        this.pauseDim = this.add.rectangle(
+            this.scale.width / 2,
+            this.scale.height / 2,
+            this.scale.width,
+            this.scale.height,
+            0x000000,
+            0.6
+        ).setDepth(30);
+
+        // Panel box
+        this.pauseBox = this.add.rectangle(
+            this.scale.width / 2,
+            this.scale.height / 2,
+            500,
+            250,
+            0x111111,
+            0.9
+        ).setDepth(31);
+
+        // Text
+        this.pauseText = this.add.text(
+            this.scale.width / 2,
+            this.scale.height / 2 - 40,
+            "Exit Level?",
+            {
+                fontSize: '32px',
+                color: '#ffffff'
+            }
+        ).setOrigin(0.5).setDepth(32);
+
+        this.pauseSubText = this.add.text(
+            this.scale.width / 2,
+            this.scale.height / 2 + 10,
+            "Press Y to confirm\nPress N to cancel",
+            {
+                fontSize: '20px',
+                color: '#cccccc',
+                align: 'center'
+            }
+        ).setOrigin(0.5).setDepth(32);
+
+        // Keys
+        this.confirmKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Y);
+        this.cancelKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.N);
+    }
+
+    closePauseMenu() {
+
+        this.isPausedMenuOpen = false;
+
+        this.pauseDim.destroy();
+        this.pauseBox.destroy();
+        this.pauseText.destroy();
+        this.pauseSubText.destroy();
+
+        this.physics.resume();
     }
 
     gameOver() {
