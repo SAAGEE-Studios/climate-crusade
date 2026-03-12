@@ -16,6 +16,7 @@ export class SunkenWellsLevel extends Phaser.Scene {
     this.load.image("shield", './client/Levels/Level03/Assets/shield.png');
     this.load.image("drill", './client/Levels/Level03/Assets/drill.png');
     this.load.image("wind_damage", './client/Levels/Level03/Assets/sandslide.png')
+    this.load.image("overlayBG", './client/Levels/Level03/Assets/end_overlay_background.png');
     this.makeRectTexture("player", 30, 35, 0xffffff);
   }
 
@@ -125,8 +126,8 @@ export class SunkenWellsLevel extends Phaser.Scene {
     this.starsCollected = 0;
 
     // Row hazard: wind/sand slide
-    this.windEveryMs = Math.random() * (15000 - 10000) + 10000;
-    this.lastWindAt = 0;
+    this.windEveryMs = Math.random() * (5000) + 10000;
+    this.lastWindAt = this.time.now + Phaser.Math.Between(0, 3000);
 
     //GRID DETAILS
     this.TILE_EMPTY = 0; 
@@ -325,7 +326,7 @@ export class SunkenWellsLevel extends Phaser.Scene {
     // Oxygen bar fill width
     const oxygenRatio = Phaser.Math.Clamp(this.oxygen / this.oxygenMax, 0, 1);
     this.displayedOxygenRatio +=(oxygenRatio - this.displayedOxygenRatio) * 0.1;
-    this.oxygenBarFill.width = 220 * oxygenRatio;
+    this.oxygenBarFill.width = 220 * this.displayedOxygenRatio;
     // color update
     if (oxygenRatio <= 0.20) {
       this.oxygenBarFill.fillColor = 0xff3b30; // red
@@ -436,7 +437,7 @@ export class SunkenWellsLevel extends Phaser.Scene {
     const pr = this.worldToGrid(this.player.x, this.player.y).r;
     const windRow = Phaser.Math.Clamp(
       pr + Phaser.Math.Between(-1, 3),
-      0,
+      4,
       this.ROWS - 1
     );
 
@@ -759,7 +760,7 @@ export class SunkenWellsLevel extends Phaser.Scene {
       }
 
       //backend save if user logged in
-      if (typeof GameState.userId) {
+      if (GameState.userId) {
         await saveProgress(
           GameState.userId,
           this.levelId,
@@ -791,7 +792,8 @@ export class SunkenWellsLevel extends Phaser.Scene {
       0.7
     )
       .setScrollFactor(0)
-      .setDepth(2000);
+      .setDepth(2000)
+      .setInteractive();
     
     blocker.on("pointerdown", (pointer, localX, localY, event) => {
       if (event) event.stopPropagation();
@@ -802,8 +804,39 @@ export class SunkenWellsLevel extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(2001);
 
-    const panel = this.add.rectangle(0, 0, 620, 380, 0x1a1a1a, 0.95)
-      .setStrokeStyle(3, 0xd8c08a, 1);
+    const panel = this.add.image(0, 0, 'overlayBG');
+    const targetPanelW = 620;
+    const targetPanelH = 380;
+
+    const scale = Math.min(
+      targetPanelW / panel.width,
+      targetPanelH / panel.height
+    );
+    panel.setScale(scale);
+
+    const panelW = panel.displayWidth;
+    const panelH = panel.displayHeight;
+
+
+    const panelShadow = this.add.rectangle(
+      8,
+      8,
+      panelW,
+      panelH,
+      0x000000,
+      0.35
+    );
+
+    panelShadow.setDepth(panel.depth - 1);
+
+    const panelBorder = this.add.rectangle(
+      0,
+      0,
+      panelW + 12,
+      panelH + 12,
+      0x000000,
+      0.35
+    ).setStrokeStyle(3, 0x222222, 1);
 
     const title = this.add.text(
       0,
@@ -811,7 +844,7 @@ export class SunkenWellsLevel extends Phaser.Scene {
       isWin ? "LEVEL COMPLETE" : "OUT OF OXYGEN",
       {
         fontSize: "42px",
-        color: isWin ? "#7CFC00" : "#ff5c5c",
+        color: isWin ? "#7CFC00" : "#4a0006",
         fontStyle: "bold",
       }
     ).setOrigin(0.5);
@@ -839,37 +872,49 @@ export class SunkenWellsLevel extends Phaser.Scene {
       starNodes.push(star);
     }
 
-    // retry button
-    const retryBtn = this.add.rectangle(-140, 120, 200, 64, 0x3a6ea5, 1)
+    const retryBtnX = centerX - 140;
+    const retryBtnY = centerY + 120;
+
+    const retryBtn = this.add.rectangle(retryBtnX, retryBtnY, 200, 64, 0x3a6ea5, 1)
       .setStrokeStyle(2, 0xffffff, 1)
+      .setScrollFactor(0)
+      .setDepth(2002)
       .setInteractive({ useHandCursor: true });
 
-    const retryText = this.add.text(-140, 120, "RETRY", {
+    const retryText = this.add.text(retryBtnX, retryBtnY, "RETRY", {
       fontSize: "28px",
       color: "#ffffff",
       fontStyle: "bold",
-    }).setOrigin(0.5);
+    })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(2003);
 
-    // main page button
-    const mainBtn = this.add.rectangle(140, 120, 240, 64, 0x6b4f2a, 1)
+    const mainBtnX = centerX + 140;
+    const mainBtnY = centerY + 120;
+
+    const mainBtn = this.add.rectangle(mainBtnX, mainBtnY, 240, 64, 0x6b4f2a, 1)
       .setStrokeStyle(2, 0xffffff, 1)
+      .setScrollFactor(0)
+      .setDepth(2002)
       .setInteractive({ useHandCursor: true });
 
-    const mainText = this.add.text(140, 120, "MAIN PAGE", {
+    const mainText = this.add.text(mainBtnX, mainBtnY, "MAIN PAGE", {
       fontSize: "28px",
       color: "#ffffff",
       fontStyle: "bold",
-    }).setOrigin(0.5);
+    })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(2003);
 
     container.add([
+      panelShadow,
+      panelBorder,
       panel,
       title,
       starsLabel,
       ...starNodes,
-      retryBtn,
-      retryText,
-      mainBtn,
-      mainText
     ]);
 
     // pop-in animation
