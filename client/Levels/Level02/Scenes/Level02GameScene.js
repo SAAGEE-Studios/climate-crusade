@@ -1,5 +1,6 @@
 import { GameFlowManager } from '../../../Core/GameFlowManager.js';
 import { GameState } from '../../../Core/GameState.js';
+import {LevelSelectScene} from '../../../LevelSelect/LevelSelectScene.js';
 
 // =========================================================================
 // HELPER FUNCTIONS
@@ -36,9 +37,9 @@ export const MAX_ROPE_LENGTH = 520;
 export const HOOK_EXTEND_SPEED = 4;
 export const HOOK_SWING = 60; // degrees each side
 
-export const STAR_PLACEMENTS = [
-  { x: 170, y: 730 }, { x: 480, y: 540 }, { x: 700, y: 520 },
-];
+// export const STAR_PLACEMENTS = [
+//   { x: 170, y: 730 }, { x: 480, y: 540 }, { x: 700, y: 520 },
+// ];
 
 // =========================================================================
 // MAIN GAME SCENE
@@ -123,11 +124,34 @@ export class Level02GameScene extends Phaser.Scene {
     createStars() {
         this.starGroup = this.add.group();
 
-        STAR_PLACEMENTS.forEach((pos) => {
+        // Divide the hook's 120-degree swing arc into three sectors to ensure 
+        // the stars spread out nicely (Left, Center, Right)
+        const sectors = [
+            { minA: 20, maxA: 50 },   // Left side
+            { minA: -15, maxA: 15 },  // Center
+            { minA: -50, maxA: -20 }  // Right side
+        ];
+
+        sectors.forEach((sector) => {
+            // 1. Pick a random angle within the current sector
+            const randomAngle = Phaser.Math.Between(sector.minA, sector.maxA);
+            const rad = Phaser.Math.DegToRad(randomAngle + 90);
+
+            // 2. Calculate the maximum distance the star can be placed along this angle 
+            // before it clips into the seafloor (y = 540)
+            const maxDist = (540 - this.ropeOriginY) / Math.sin(rad);
+            
+            // 3. Pick a random distance along that vector 
+            // (80 ensures it doesn't spawn right on top of the boat)
+            const dist = Phaser.Math.Between(80, Math.floor(maxDist));
+
+            // 4. Convert the polar coordinates back to Cartesian (x, y) for Phaser
+            const posX = this.ropeOriginX + Math.cos(rad) * dist;
+            const posY = this.ropeOriginY + Math.sin(rad) * dist;
+
             const g = this.add.graphics().setDepth(9);
-            // FIX: Draw the star at local (0,0) instead of (300, 300) so setPosition places it exactly at pos.x, pos.y
             drawStar(g, 0, 0, 14, 0xffe066, 1); 
-            g.setPosition(pos.x, pos.y);
+            g.setPosition(posX, posY);
             g.active = true;
 
             this.tweens.add({
@@ -254,6 +278,10 @@ export class Level02GameScene extends Phaser.Scene {
     createInputs() {
         this.input.keyboard.on("keydown-SPACE", this.launchHook, this);
         this.input.on("pointerdown", this.launchHook, this);
+
+        
+        // NEW: Escape key to quit the level
+        this.input.keyboard.on("keydown-ESC", this.quitGame, this);
     }
 
     createTimer() {
@@ -284,6 +312,20 @@ export class Level02GameScene extends Phaser.Scene {
                 timeLeft: this.timeLeft,
             });
         });
+    }
+
+    quitGame() {
+        this.paused = true;
+        if (this.timerEvent) {
+            this.timerEvent.remove();
+        }
+        
+        // Stop both the UI and Game scenes
+        this.scene.stop("Level02UIScene");
+        this.scene.stop("Level02GameScene");
+        
+        // Replace "MainMenuScene" with the actual key of your menu or level select scene!
+        this.scene.start("LevelSelectScene"); 
     }
 }
 
@@ -359,6 +401,7 @@ export class Level02UIScene extends Phaser.Scene {
         this.add.text(400, 588, "Collect ★ stars to clear the level • Clean the ocean! 🌊", {
             fontFamily: "monospace", fontSize: "10px", color: "#aaccff", alpha: 0.7,
         }).setOrigin(0.5).setAlpha(0.7);
+        
     }
 }
 
