@@ -183,7 +183,6 @@ export class AcidDownpourLevel extends Phaser.Scene {
             repeat: -1
         });
 
-        this.showEndOverlay();
         this.createPlayer();
         this.createBoundary();
         this.createPlatforms();
