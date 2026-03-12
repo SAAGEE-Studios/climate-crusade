@@ -21,16 +21,16 @@ export class AcidDownpourLevel extends Phaser.Scene {
     }
 
     init(data) {
-        if (data.lives !== undefined) {
+        if (data?.isRespawn) {
+            // Respawn case
             this.lives = data.lives;
-        }
-
-        if (data.collectedStars) {
-            this.collectedStars = new Set(data.collectedStars);
-        }
-
-        if (data.leverStates) {
-            this.leverStates = data.leverStates;
+            this.collectedStars = new Set(data.collectedStars || []);
+            this.leverStates = data.leverStates || {};
+        } else {
+            // Fresh start from Entry
+            this.lives = this.maxLives;
+            this.collectedStars = new Set();
+            this.leverStates = {};
         }
     }
 
@@ -152,36 +152,46 @@ export class AcidDownpourLevel extends Phaser.Scene {
     }
 
     create() {
-        this.levers = [];
-
+        console.log("LIVES IN CREATE:", this.lives);
+        this.levelFinished = false;
+        this.isGameOver = false;
         this.isDying = false;
+
+        this.physics.resume();
+
         this.physics.world.gravity.y = 1200;
         const bg = this.add.image(0, 0, 'Level01Background').setOrigin(0, 0);
         bg.setDisplaySize(this.scale.width, this.scale.height);
         const walkAnimationRate = 8;
+
         this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        this.escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
 
-        this.anims.create({
-            key: 'walk_left',
-            frames: [
-                { key: 'green_left_walk1' },
-                { key: 'green_left' },
-                { key: 'green_left_walk2' }
-            ],
-            frameRate: walkAnimationRate,
-            repeat: -1
-        });
+        if (!this.anims.exists('walk_left')) {
+            this.anims.create({
+                key: 'walk_left',
+                frames: [
+                    { key: 'green_left_walk1' },
+                    { key: 'green_left' },
+                    { key: 'green_left_walk2' }
+                ],
+                frameRate: walkAnimationRate,
+                repeat: -1
+            });
+        }
 
-        this.anims.create({
-            key: 'walk_right',
-            frames: [
-                { key: 'green_right_walk1' },
-                { key: 'green_right' },
-                { key: 'green_right_walk2' }
-            ],
-            frameRate: walkAnimationRate,
-            repeat: -1
-        });
+        if (!this.anims.exists('walk_right')) {
+            this.anims.create({
+                key: 'walk_right',
+                frames: [
+                    { key: 'green_right_walk1' },
+                    { key: 'green_right' },
+                    { key: 'green_right_walk2' }
+                ],
+                frameRate: walkAnimationRate,
+                repeat: -1
+            });
+        }
 
         this.createPlayer();
         this.createBoundary();
@@ -207,18 +217,18 @@ export class AcidDownpourLevel extends Phaser.Scene {
     }
 
     update() {
-        if (this.levelFinished) {
+        if (Phaser.Input.Keyboard.JustDown(this.escKey)) {
 
-            if (this.isGameOver &&
-                Phaser.Input.Keyboard.JustDown(this.exitKey)) {
+            if (this.isGameOver || this.levelFinished) {
 
-                this.scene.stop();               // destroys this scene
-                GameFlowManager.goToLevelSelect(this)    // or whatever scene you use
+                this.scene.start('Level01EntryScene');
+                return;
             }
-
-            return;
         }
 
+        if (this.levelFinished) {
+            return;
+        }
 
         this.handleMovement();
         this.checkButtonActivation();
@@ -444,9 +454,9 @@ export class AcidDownpourLevel extends Phaser.Scene {
                 this.scene.restart({
                     lives: this.lives,
                     collectedStars: Array.from(this.collectedStars),
-                    leverStates: this.leverStates
+                    leverStates: this.leverStates,
+                    isRespawn: true
                 });
-                //this.starsCollected = 0;
             }
 
         });
@@ -503,7 +513,7 @@ export class AcidDownpourLevel extends Phaser.Scene {
     }
 
     checkButtonActivation() {
-
+        if (this.levelFinished || this.isGameOver) return;
         if (!Phaser.Input.Keyboard.JustDown(this.spaceKey)) return;
 
         this.buttons.forEach(button => {
@@ -653,9 +663,8 @@ export class AcidDownpourLevel extends Phaser.Scene {
     }
 
     toggleLever(lever) {
-
+        if (!lever || !lever.scene || this.levelFinished) return;
         const id = lever.leverId;
-
         const isDown = this.leverStates[id];
 
         if (!isDown) {
@@ -710,7 +719,7 @@ export class AcidDownpourLevel extends Phaser.Scene {
             "LEVEL COMPLETE",
             {
                 fontSize: '42px',
-                color: '#759116'
+                color: '#cfe8d4'
             }
         ).setOrigin(0.5).setDepth(22);
 
@@ -777,9 +786,9 @@ export class AcidDownpourLevel extends Phaser.Scene {
         ).setOrigin(0.5).setDepth(22);
 
         const tips = [
-            "Reduce fossil fuel use",
-            "Support renewable energy",
-            "Use public transport"
+            "Use public transport or carpool to reduce vehicle emissions",
+            "Choose renewable energy options when available",
+            "Buy products from companies with clean manufacturing practices"
         ];
 
         tips.forEach((tip, index) => {
@@ -806,11 +815,22 @@ export class AcidDownpourLevel extends Phaser.Scene {
             });
         });
 
+        this.exitTextEnd = this.add.text(
+            this.scale.width / 2,
+            this.scale.height / 2 + 240,
+            "Press Esc to Exit",
+            {
+                fontSize: '20px',
+                color: '#ffffff'
+            }
+        ).setOrigin(0.5).setDepth(22);
+
         // Fade-in animation
         this.endPanel.setAlpha(0);
+        this.exitTextEnd.setAlpha(0);
 
         this.tweens.add({
-            targets: [this.endPanel, this.endStats, this.endTips],
+            targets: [this.endPanel, this.endStats, this.endTips, this.exitTextEnd],
             alpha: 1,
             duration: 400,
             ease: 'Sine.easeOut'
@@ -888,7 +908,7 @@ export class AcidDownpourLevel extends Phaser.Scene {
         this.exitText = this.add.text(
             this.scale.width / 2,
             this.scale.height / 2 + 120,
-            "Click or Press SPACE to Exit",
+            "Press Esc to Exit",
             {
                 fontSize: '20px',
                 color: '#ffffff'
@@ -912,22 +932,9 @@ export class AcidDownpourLevel extends Phaser.Scene {
             duration: 500,
             ease: 'Sine.easeOut'
         });
-
-        this.exitKey = this.input.keyboard.addKey(
-            Phaser.Input.Keyboard.KeyCodes.SPACE
-        );
-
-        this.input.once('pointerdown', () => {
-
-            if (!this.isGameOver) return;
-
-            this.scene.stop();
-            GameFlowManager.goToLevelSelect(this);
-        });
     }
 
     gameOver() {
-
         console.log("GAME OVER");
 
         this.isGameOver = true;
