@@ -11,6 +11,7 @@ import { AcidDownpourLevel } from '../Levels/Level01/Scenes/AcidDownpourLevel.js
 //import { Level02EntryScene } from '../Levels/Level02/EntryScene.js';
 //import { Level02CutsceneScene } from '../Levels/Level02/Cutscene/CutsceneScene.js';
 //import { DeepPurgeLevel } from '../Levels/Level02/Scenes/DeepPurgeLevel.js';
+import { Level02Scenes } from '../Levels/Level02/index.js';
 
 import { Level03EntryScene } from '../Levels/Level03/EntryScene.js';
 //import { Level03CutsceneScene } from '../Levels/Level03/Cutscene/CutsceneScene.js';
@@ -25,15 +26,16 @@ export const SCENES = [
   //LoginScene,
   //SignupScene,
   //FirstTimeCutsceneScene,
-  LevelSelectScene,
+  // LevelSelectScene,
   //------Level 01--------
   //Level01EntryScene,
   //Level01CutsceneScene,
-  AcidDownpourLevel,
+  // AcidDownpourLevel,
   //------Level 02--------
   //Level02EntryScene,
   //Level02CutsceneScene,
   //DeepPurgeLevel,
+  ...Level02Scenes,
   //------Level 03--------
   Level03EntryScene,
   //Level03CutsceneScene,
