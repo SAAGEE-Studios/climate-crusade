@@ -44,9 +44,9 @@ export const HOOK_SWING = 60; // degrees each side
 // =========================================================================
 // MAIN GAME SCENE
 // =========================================================================
-export class Level02GameScene extends Phaser.Scene {
+export class DeepPurgeLevel extends Phaser.Scene {
     constructor() {
-        super('Level02GameScene');
+        super('DeepPurgeLevel');
         this.hookAngle = 0;
         this.hookSpeed = 1.2;
         this.hookDir = 1;

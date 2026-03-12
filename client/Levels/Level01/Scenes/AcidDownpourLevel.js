@@ -1,5 +1,6 @@
 import { GameFlowManager } from '../../../Core/GameFlowManager.js';
 import { GameState } from '../../../Core/GameState.js';
+import { saveProgress } from '../../../Core/api.js';
 
 export class AcidDownpourLevel extends Phaser.Scene {
 
@@ -18,24 +19,26 @@ export class AcidDownpourLevel extends Phaser.Scene {
 
         this.levelFinished = false;
         this.isGameOver = false;
+        this.isPausedMenuOpen = false;
     }
 
     init(data) {
-        if (data.lives !== undefined) {
+        if (data?.isRespawn) {
+            // Respawn case
             this.lives = data.lives;
-        }
-
-        if (data.collectedStars) {
-            this.collectedStars = new Set(data.collectedStars);
-        }
-
-        if (data.leverStates) {
-            this.leverStates = data.leverStates;
+            this.collectedStars = new Set(data.collectedStars || []);
+            this.leverStates = data.leverStates || {};
+        } else {
+            // Fresh start from Entry
+            this.lives = this.maxLives;
+            this.collectedStars = new Set();
+            this.leverStates = {};
         }
     }
 
     preload() {
         this.load.image('Level01Background', './client/Levels/Level01/Assets/Backgrounds/Thailand_Backdrop.png');
+        this.load.image('GenericBackground', './client/Levels/Level01/Assets/Backgrounds/Generic_Forrest_Background.png');
 
         this.load.image('green_front', './client/Levels/Level01/Assets/Player/greenfront.png');
         this.load.image('green_left', './client/Levels/Level01/Assets/Player/greenleft.png');
@@ -138,39 +141,61 @@ export class AcidDownpourLevel extends Phaser.Scene {
             'lever_down',
             './client/Levels/Level01/Assets/InteractableAssets/lever_down.png'
         );
+
+        this.load.image(
+            'star_filled',
+            './client/Levels/Level01/Assets/Items/FilledStar.png'
+        );
+
+        this.load.image(
+            'star_unfilled',
+            './client/Levels/Level01/Assets/Items/UnfilledStar.png'
+        );
     }
 
     create() {
-        this.levers = [];
-
+        console.log("LIVES IN CREATE:", this.lives);
+        this.levelFinished = false;
+        this.isGameOver = false;
         this.isDying = false;
+
+        this.physics.resume();
+        this.input.keyboard.resetKeys();
+        this.isPausedMenuOpen = false;
+
         this.physics.world.gravity.y = 1200;
         const bg = this.add.image(0, 0, 'Level01Background').setOrigin(0, 0);
         bg.setDisplaySize(this.scale.width, this.scale.height);
         const walkAnimationRate = 8;
+
         this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        this.escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
 
-        this.anims.create({
-            key: 'walk_left',
-            frames: [
-                { key: 'green_left_walk1' },
-                { key: 'green_left' },
-                { key: 'green_left_walk2' }
-            ],
-            frameRate: walkAnimationRate,
-            repeat: -1
-        });
+        if (!this.anims.exists('walk_left')) {
+            this.anims.create({
+                key: 'walk_left',
+                frames: [
+                    { key: 'green_left_walk1' },
+                    { key: 'green_left' },
+                    { key: 'green_left_walk2' }
+                ],
+                frameRate: walkAnimationRate,
+                repeat: -1
+            });
+        }
 
-        this.anims.create({
-            key: 'walk_right',
-            frames: [
-                { key: 'green_right_walk1' },
-                { key: 'green_right' },
-                { key: 'green_right_walk2' }
-            ],
-            frameRate: walkAnimationRate,
-            repeat: -1
-        });
+        if (!this.anims.exists('walk_right')) {
+            this.anims.create({
+                key: 'walk_right',
+                frames: [
+                    { key: 'green_right_walk1' },
+                    { key: 'green_right' },
+                    { key: 'green_right_walk2' }
+                ],
+                frameRate: walkAnimationRate,
+                repeat: -1
+            });
+        }
 
         this.createPlayer();
         this.createBoundary();
@@ -196,18 +221,39 @@ export class AcidDownpourLevel extends Phaser.Scene {
     }
 
     update() {
-        if (this.levelFinished) {
+        if (Phaser.Input.Keyboard.JustDown(this.escKey)) {
+            if (!this.isPausedMenuOpen && !this.levelFinished && !this.isGameOver) {
+                this.openPauseMenu();
+                return;
+            }
 
-            if (this.isGameOver &&
-                Phaser.Input.Keyboard.JustDown(this.exitKey)) {
+            if (this.isGameOver || this.levelFinished) {
 
-                this.scene.stop();               // destroys this scene
-                GameFlowManager.goToLevelSelect(this)    // or whatever scene you use
+                this.scene.start('Level01EntryScene');
+                return;
+            }
+        }
+
+        if (this.isPausedMenuOpen) {
+
+            if (Phaser.Input.Keyboard.JustDown(this.confirmKey)) {
+                this.physics.resume();
+                this.isPausedMenuOpen = false;
+                this.scene.start('Level01EntryScene');
+                return;
+            }
+
+            if (Phaser.Input.Keyboard.JustDown(this.cancelKey)) {
+                this.closePauseMenu();
+                return;
             }
 
             return;
         }
 
+        if (this.levelFinished) {
+            return;
+        }
 
         this.handleMovement();
         this.checkButtonActivation();
@@ -433,9 +479,9 @@ export class AcidDownpourLevel extends Phaser.Scene {
                 this.scene.restart({
                     lives: this.lives,
                     collectedStars: Array.from(this.collectedStars),
-                    leverStates: this.leverStates
+                    leverStates: this.leverStates,
+                    isRespawn: true
                 });
-                //this.starsCollected = 0;
             }
 
         });
@@ -492,7 +538,7 @@ export class AcidDownpourLevel extends Phaser.Scene {
     }
 
     checkButtonActivation() {
-
+        if (this.levelFinished || this.isGameOver) return;
         if (!Phaser.Input.Keyboard.JustDown(this.spaceKey)) return;
 
         this.buttons.forEach(button => {
@@ -642,9 +688,8 @@ export class AcidDownpourLevel extends Phaser.Scene {
     }
 
     toggleLever(lever) {
-
+        if (!lever || !lever.scene || this.levelFinished) return;
         const id = lever.leverId;
-
         const isDown = this.leverStates[id];
 
         if (!isDown) {
@@ -681,50 +726,136 @@ export class AcidDownpourLevel extends Phaser.Scene {
             this.scale.height,
             0x000000,
             0.5
-        ).setDepth(20);
-
-        // Custom panel image (replace key with yours)
-        this.endPanel = this.add.image(
-            this.scale.width / 2,
-            this.scale.height / 2,
-            'your_custom_panel'
         ).setDepth(21);
 
+        this.endPanel = this.add.image(
+            0,
+            0,
+            'GenericBackground'
+        ).setDepth(20)
+            .setOrigin(0, 0);
+
+        this.endPanel.setDisplaySize(this.scale.width, this.scale.height);
+
         // Stats text
-        this.endStats = this.add.text(
+        this.add.text(
             this.scale.width / 2,
-            this.scale.height / 2 - 90,
-            `Stars Collected: ${this.collectedStars.size}\nLives Remaining: ${this.lives}`,
+            this.scale.height / 2 - 140,
+            "LEVEL COMPLETE",
             {
-                fontSize: '28px',
-                color: '#ffffff',
-                align: 'center'
+                fontSize: '42px',
+                color: '#cfe8d4'
+            }
+        ).setOrigin(0.5).setDepth(22);
+
+        // Stars Label
+        this.add.text(
+            this.scale.width / 2,
+            this.scale.height / 2 - 80,
+            "Stars Collected",
+            {
+                fontSize: '26px',
+                color: '#ffffff'
+            }
+        ).setOrigin(0.5).setDepth(22);
+
+        // Star UI
+        const totalStars = 3;
+        const starSpacing = 70;
+        const startX = this.scale.width / 2 - starSpacing;
+        const starY = this.scale.height / 2 - 30;
+
+        for (let i = 0; i < totalStars; i++) {
+            const texture = i < this.collectedStars.size
+                ? 'star_filled'
+                : 'star_unfilled';
+
+            const star = this.add.image(
+                startX + i * starSpacing,
+                starY,
+                texture
+            )
+                .setScale(0.08)
+                .setDepth(22);
+
+            this.tweens.add({
+                targets: star,
+                alpha: 1,
+                scale: { from: 0.04, to: 0.08 },
+                duration: 300,
+                delay: i * 200,
+                ease: 'Back.easeOut'
+            });
+        }
+
+        // Lives Remaining
+        this.add.text(
+            this.scale.width / 2,
+            this.scale.height / 2 + 40,
+            `Lives Remaining: ${this.lives}`,
+            {
+                fontSize: '24px',
+                color: '#ffffff'
             }
         ).setOrigin(0.5).setDepth(22);
 
         // Educational tips
-        this.endTips = this.add.text(
+        this.add.text(
             this.scale.width / 2,
-            this.scale.height / 2 + 30,
-            "How to reduce acid rain:\n" +
-            "• Reduce fossil fuel use\n" +
-            "• Support renewable energy\n" +
-            "• Use public transport",
+            this.scale.height / 2 + 90,
+            "How to Reduce Acid Rain",
             {
-                fontSize: '22px',
-                color: '#ffffff',
-                align: 'center',
-                wordWrap: { width: 600 }
+                fontSize: '24px',
+                color: '#cfe8b4'
+            }
+        ).setOrigin(0.5).setDepth(22);
+
+        const tips = [
+            "Use public transport or carpool to reduce vehicle emissions",
+            "Choose renewable energy options when available",
+            "Buy products from companies with clean manufacturing practices"
+        ];
+
+        tips.forEach((tip, index) => {
+
+            const tipText = this.add.text(
+                this.scale.width / 2,
+                this.scale.height / 2 + 130 + index * 35,
+                `• ${tip}`,
+                {
+                    fontSize: '22px',
+                    color: '#cfe8b4'
+                }
+            )
+                .setOrigin(0.5)
+                .setDepth(22)
+                .setAlpha(0);
+
+            // Gentle fade-in
+            this.tweens.add({
+                targets: tipText,
+                alpha: 1,
+                duration: 400,
+                delay: 400 + index * 300
+            });
+        });
+
+        this.exitTextEnd = this.add.text(
+            this.scale.width / 2,
+            this.scale.height / 2 + 240,
+            "Press Esc to Exit",
+            {
+                fontSize: '20px',
+                color: '#ffffff'
             }
         ).setOrigin(0.5).setDepth(22);
 
         // Fade-in animation
         this.endPanel.setAlpha(0);
-        this.endStats.setAlpha(0);
-        this.endTips.setAlpha(0);
+        this.exitTextEnd.setAlpha(0);
 
         this.tweens.add({
-            targets: [this.endPanel, this.endStats, this.endTips],
+            targets: [this.endPanel, this.endStats, this.endTips, this.exitTextEnd],
             alpha: 1,
             duration: 400,
             ease: 'Sine.easeOut'
@@ -733,7 +864,6 @@ export class AcidDownpourLevel extends Phaser.Scene {
 
     showGameOverOverlay() {
 
-        // Darker dim than victory
         this.endDim = this.add.rectangle(
             this.scale.width / 2,
             this.scale.height / 2,
@@ -741,14 +871,16 @@ export class AcidDownpourLevel extends Phaser.Scene {
             this.scale.height,
             0x000000,
             0.75
-        ).setDepth(20);
-
-        // Custom Game Over panel image
-        this.gameOverPanel = this.add.image(
-            this.scale.width / 2,
-            this.scale.height / 2,
-            'your_game_over_panel'
         ).setDepth(21);
+
+        this.gameOverPanel = this.add.image(
+            0,
+            0,
+            'GenericBackground'
+        ).setDepth(20)
+            .setOrigin(0, 0);
+
+        this.gameOverPanel.setDisplaySize(this.scale.width, this.scale.height);
 
         // Title text
         this.gameOverTitle = this.add.text(
@@ -757,58 +889,140 @@ export class AcidDownpourLevel extends Phaser.Scene {
             "GAME OVER",
             {
                 fontSize: '42px',
-                color: '#ff4d4d'
+                color: '#759116'
             }
         ).setOrigin(0.5).setDepth(22);
 
         // Stats
-        this.gameOverStats = this.add.text(
+        this.starLabel = this.add.text(
             this.scale.width / 2,
-            this.scale.height / 2,
-            `Stars Collected: ${this.collectedStars.size}`,
+            this.scale.height / 2 - 10,
+            "Stars Collected:",
             {
                 fontSize: '26px',
                 color: '#ffffff'
             }
         ).setOrigin(0.5).setDepth(22);
 
-        // Retry prompt
+        // Star icons
+        this.gameOverStars = [];
+
+        const totalStars = 3;
+        const spacing = 70;
+        const startX = this.scale.width / 2 - spacing;
+
+        for (let i = 0; i < totalStars; i++) {
+
+            const textureKey =
+                i < this.collectedStars.size
+                    ? 'star_filled'
+                    : 'star_unfilled';
+
+            const star = this.add.image(
+                startX + i * spacing,
+                this.scale.height / 2 + 40,
+                textureKey
+            )
+                .setScale(0.08)
+                .setDepth(22)
+                .setAlpha(0);
+
+            this.gameOverStars.push(star);
+        }
+
         this.exitText = this.add.text(
             this.scale.width / 2,
             this.scale.height / 2 + 120,
-            "Press SPACE to Exit",
+            "Press Esc to Exit",
             {
                 fontSize: '20px',
                 color: '#ffffff'
             }
         ).setOrigin(0.5).setDepth(22);
 
-        // Fade-in
         this.gameOverPanel.setAlpha(0);
         this.gameOverTitle.setAlpha(0);
-        this.gameOverStats.setAlpha(0);
+        this.starLabel.setAlpha(0);
         this.exitText.setAlpha(0);
 
         this.tweens.add({
             targets: [
                 this.gameOverPanel,
                 this.gameOverTitle,
-                this.gameOverStats,
+                this.starLabel,
+                ...this.gameOverStars,
                 this.exitText
             ],
             alpha: 1,
             duration: 500,
             ease: 'Sine.easeOut'
         });
+    }
 
-        // Retry key
-        this.exitKey = this.input.keyboard.addKey(
-            Phaser.Input.Keyboard.KeyCodes.SPACE
-        );
+    openPauseMenu() {
+        this.isPausedMenuOpen = true;
+        this.physics.pause();
+
+        // Dark overlay
+        this.pauseDim = this.add.rectangle(
+            this.scale.width / 2,
+            this.scale.height / 2,
+            this.scale.width,
+            this.scale.height,
+            0x000000,
+            0.6
+        ).setDepth(30);
+
+        // Panel box
+        this.pauseBox = this.add.rectangle(
+            this.scale.width / 2,
+            this.scale.height / 2,
+            500,
+            250,
+            0x111111,
+            0.9
+        ).setDepth(31);
+
+        // Text
+        this.pauseText = this.add.text(
+            this.scale.width / 2,
+            this.scale.height / 2 - 40,
+            "Exit Level?",
+            {
+                fontSize: '32px',
+                color: '#ffffff'
+            }
+        ).setOrigin(0.5).setDepth(32);
+
+        this.pauseSubText = this.add.text(
+            this.scale.width / 2,
+            this.scale.height / 2 + 10,
+            "Press Y to confirm\nPress N to cancel",
+            {
+                fontSize: '20px',
+                color: '#cccccc',
+                align: 'center'
+            }
+        ).setOrigin(0.5).setDepth(32);
+
+        // Keys
+        this.confirmKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Y);
+        this.cancelKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.N);
+    }
+
+    closePauseMenu() {
+
+        this.isPausedMenuOpen = false;
+
+        this.pauseDim.destroy();
+        this.pauseBox.destroy();
+        this.pauseText.destroy();
+        this.pauseSubText.destroy();
+
+        this.physics.resume();
     }
 
     gameOver() {
-
         console.log("GAME OVER");
 
         this.isGameOver = true;

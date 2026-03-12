@@ -1,5 +1,6 @@
- import { GameFlowManager } from '../../../Core/GameFlowManager.js';
-import { GameState } from '../../../Core/GameState.js';
+import { GameFlowManager } from '../../../Core/GameFlowManager.js';
+import { saveProgress } from '../../../Core/api.js';
+import { GameState} from '../../../Core/GameState.js'
 
 export class SunkenWellsLevel extends Phaser.Scene {
   constructor() {
@@ -7,14 +8,16 @@ export class SunkenWellsLevel extends Phaser.Scene {
   }
 
   preload(){
-    this.load.image("bg", './client/Levels/Level03/Assets/2levels.png');
+    this.load.image("bg", './client/Levels/Level03/Assets/ChatGPT_Image_Mar_10_2026_05_10_04_PM.png');
     this.load.image("block", './client/Levels/Level03/Assets/sandstone_blocktile.png');
     this.load.image("trap", './client/Levels/Level03/Assets/sandstone_traptile.png');
     this.load.image("air", './client/Levels/Level03/Assets/o2.png');
     this.load.image("star", './client/Levels/Level03/Assets/Star_to_collect.png');
     this.load.image("shield", './client/Levels/Level03/Assets/shield.png');
     this.load.image("drill", './client/Levels/Level03/Assets/drill.png');
-    this.makeRectTexture("player", 24, 28, 0xffffff);
+    this.load.image("wind_damage", './client/Levels/Level03/Assets/sandslide.png')
+    this.load.image("overlayBG", './client/Levels/Level03/Assets/end_overlay_background.png');
+    this.makeRectTexture("player", 30, 35, 0xffffff);
   }
 
   create(initData) {
@@ -22,9 +25,11 @@ export class SunkenWellsLevel extends Phaser.Scene {
     this.GRID_WIDTH_RATIO = 0.90;
     this.GRID_HEIGHT_RATIO = 0.80;
     this.SPAWN_AREA_RATIO = 0.15;
-    this.WIND_WARNING_MS = 1500;
+    this.WIND_WARNING_MS = 1000;
     this.WIND_DAMAGE = 15;
     this.TRAP_DAMAGE = 10;
+    this.WIND_VISIBLE_MS = 600;
+    this.WIND_FADE_MS = 1000;
 
     this.initLayout();
     
@@ -62,7 +67,7 @@ export class SunkenWellsLevel extends Phaser.Scene {
   }
 
   //------------------------------------------------------------------
-  //----------------------CREATE HELPER FUNCTIONS---------------------
+  //----------------------CREATE() HELPER FUNCTIONS---------------------
   
   initLayout(){
     this.COLS = 9;
@@ -94,6 +99,8 @@ export class SunkenWellsLevel extends Phaser.Scene {
     // End state flag
     this.ended = false;
     this.oxygenActive = false;
+    this.endOverlayShown = false;
+    this.resultSaved = false;
 
     //oxygen
     this.oxygenMax = 100;
@@ -119,8 +126,8 @@ export class SunkenWellsLevel extends Phaser.Scene {
     this.starsCollected = 0;
 
     // Row hazard: wind/sand slide
-    this.windEveryMs = Math.random() * (15000 - 10000) + 10000;
-    this.lastWindAt = 0;
+    this.windEveryMs = Math.random() * (5000) + 10000;
+    this.lastWindAt = this.time.now + Phaser.Math.Between(0, 3000);
 
     //GRID DETAILS
     this.TILE_EMPTY = 0; 
@@ -281,6 +288,7 @@ export class SunkenWellsLevel extends Phaser.Scene {
 
       if (this.oxygen <= 0) {
         this.endAsLose();
+        return;
       }
     }
     
@@ -296,7 +304,11 @@ export class SunkenWellsLevel extends Phaser.Scene {
       this.ended = true;
       this.player.setVelocity(0, 0);
       this.physics.pause();
-      this.endAsWin();
+      
+      this.time.delayedCall(500, ()=> {
+        this.endAsWin();
+      });
+
       return;
     }
 
@@ -314,7 +326,7 @@ export class SunkenWellsLevel extends Phaser.Scene {
     // Oxygen bar fill width
     const oxygenRatio = Phaser.Math.Clamp(this.oxygen / this.oxygenMax, 0, 1);
     this.displayedOxygenRatio +=(oxygenRatio - this.displayedOxygenRatio) * 0.1;
-    this.oxygenBarFill.width = 220 * oxygenRatio;
+    this.oxygenBarFill.width = 220 * this.displayedOxygenRatio;
     // color update
     if (oxygenRatio <= 0.20) {
       this.oxygenBarFill.fillColor = 0xff3b30; // red
@@ -425,16 +437,17 @@ export class SunkenWellsLevel extends Phaser.Scene {
     const pr = this.worldToGrid(this.player.x, this.player.y).r;
     const windRow = Phaser.Math.Clamp(
       pr + Phaser.Math.Between(-1, 3),
-      0,
+      4,
       this.ROWS - 1
     );
 
     const y = this.gridToWorldY(windRow);
+    const centerX = this.gridOffsetX + this.worldW / 2;
 
     // 1) WARNING BAND: visible for 1.5s before the strike
     const warningBand = this.add
       .rectangle(
-        this.gridOffsetX + this.worldW / 2,
+        centerX,
         y,
         this.worldW,
         this.TILE,
@@ -446,7 +459,7 @@ export class SunkenWellsLevel extends Phaser.Scene {
     // Optional pulsing effect during warning
     this.tweens.add({
       targets: warningBand,
-      alpha: { from: 0.25, to: 0.5 },
+      alpha: { from: 0.5, to: 0.8},
       duration: 250,
       yoyo: true,
       repeat: 5   // ~1.5 seconds total
@@ -458,29 +471,43 @@ export class SunkenWellsLevel extends Phaser.Scene {
 
       warningBand.destroy();
 
-      // Damage happens now
-      const currentPlayerRow = this.worldToGrid(this.player.x, this.player.y).r;
-      if (currentPlayerRow === windRow) {
-        this.takeDamage(this.WIND_DAMAGE);
-      }
+      // DAMAGE BAND using imported asset
+      const damageBand = this.physics.add
+        .sprite(centerX, y, "wind_damage")
+        .setDisplaySize(this.worldW * 1.15, this.TILE * 2.5)
+        .setOrigin(0.5)
+        .setImmovable(true);
 
-      // Flash band at moment of impact
-      const flashBand = this.add
-        .rectangle(
-          this.gridOffsetX + this.worldW / 2,
-          y,
-          this.worldW,
-          this.TILE,
-          0xffffff,
-          0.8
-        )
-        .setOrigin(0.5, 0.5);
+      damageBand.body.allowGravity = false;
+      damageBand.body.setSize(this.worldW, this.TILE, true);
 
-      this.tweens.add({
-        targets: flashBand,
-        alpha: 0,
-        duration: 250,
-        onComplete: () => flashBand.destroy(),
+      // damage on contact
+      let hasDamagedPlayer = false;
+
+      const overlap = this.physics.add.overlap(
+        this.player,
+        damageBand,
+        () => {
+          if (hasDamagedPlayer) return;
+          hasDamagedPlayer = true;
+          this.takeDamage(this.WIND_DAMAGE);
+        }
+      );
+
+      // fade out damaging band
+      this.time.delayedCall(this.WIND_VISIBLE_MS, () => {
+
+        this.tweens.add({
+          targets: damageBand,
+          alpha: 0,
+          duration: this.WIND_FADE_MS,
+          ease: "Sine.easeOut",
+          onComplete: () => {
+            overlap.destroy();
+            damageBand.destroy();
+          }
+        });
+
       });
     });
   }
@@ -545,17 +572,23 @@ export class SunkenWellsLevel extends Phaser.Scene {
   }
 
   endAsWin() {
-    this.add.text(this.scale.width / 2, this.scale.height / 2, "WATER REACHED!", { fontSize: "50px" })
-    .setOrigin(0.5)
-    .setScrollFactor(0);
+    if (this.endOverlayShown) return;
+
+    this.ended = true;
+    this.physics.pause();
+    this.player.setVelocity(0, 0);
+
+    this.showEndOverlay(true);
   }
 
   endAsLose() {
+    if (this.endOverlayShown) return;
+
     this.ended = true;
     this.physics.pause();
-    this.add.text(this.scale.width / 2, this.scale.height / 2, "OUT OF OXYGEN", { fontSize: "50px" })
-    .setOrigin(0.5)
-    .setScrollFactor(0);
+    this.player.setVelocity(0, 0);
+
+    this.showEndOverlay(false);
   }
 
   renderAllTiles() {
@@ -711,6 +744,233 @@ export class SunkenWellsLevel extends Phaser.Scene {
     g.fillRoundedRect(0, 0, w, h, 4);
     g.generateTexture(key, w, h);
     g.destroy();
+  }
+
+  async saveLevelResult() {
+    if (this.resultSaved) return;
+    this.resultSaved = true;
+
+    try {
+      const previousStars = GameState.progress[this.levelId]?.stars ?? 0;
+      const bestStars = Math.max(previousStars, this.starsCollected);
+
+      //local runtime save
+      GameState.progress[this.levelId] = {
+        stars: bestStars
+      }
+
+      //backend save if user logged in
+      if (GameState.userId) {
+        await saveProgress(
+          GameState.userId,
+          this.levelId,
+          bestStars
+        )
+      }
+
+      console.log("Progress saved;", this.levelId, bestStars);
+    } catch(error){
+      console.error("Failed to save progress", error);
+    }
+  
+  }
+
+  showEndOverlay(isWin) {
+    if (this.endOverlayShown) return;
+    this.endOverlayShown = true;
+
+    const centerX = this.scale.width / 2;
+    const centerY = this.scale.height / 2;
+
+    // dark blocker
+    const blocker = this.add.rectangle(
+      centerX,
+      centerY,
+      this.scale.width,
+      this.scale.height,
+      0x000000,
+      0.7
+    )
+      .setScrollFactor(0)
+      .setDepth(2000)
+      .setInteractive();
+    
+    blocker.on("pointerdown", (pointer, localX, localY, event) => {
+      if (event) event.stopPropagation();
+    });
+
+    // panel container
+    const container = this.add.container(centerX, centerY)
+      .setScrollFactor(0)
+      .setDepth(2001);
+
+    const panel = this.add.image(0, 0, 'overlayBG');
+    const targetPanelW = 620;
+    const targetPanelH = 380;
+
+    const scale = Math.min(
+      targetPanelW / panel.width,
+      targetPanelH / panel.height
+    );
+    panel.setScale(scale);
+
+    const panelW = panel.displayWidth;
+    const panelH = panel.displayHeight;
+
+
+    const panelShadow = this.add.rectangle(
+      8,
+      8,
+      panelW,
+      panelH,
+      0x000000,
+      0.35
+    );
+
+    panelShadow.setDepth(panel.depth - 1);
+
+    const panelBorder = this.add.rectangle(
+      0,
+      0,
+      panelW + 12,
+      panelH + 12,
+      0x000000,
+      0.35
+    ).setStrokeStyle(3, 0x222222, 1);
+
+    const title = this.add.text(
+      0,
+      -120,
+      isWin ? "LEVEL COMPLETE" : "OUT OF OXYGEN",
+      {
+        fontSize: "42px",
+        color: isWin ? "#7CFC00" : "#4a0006",
+        fontStyle: "bold",
+      }
+    ).setOrigin(0.5);
+
+    const starsLabel = this.add.text(
+      0,
+      -50,
+      `Stars collected: ${this.starsCollected}/${this.totalStars}`,
+      {
+        fontSize: "28px",
+        color: "#ffffff",
+      }
+    ).setOrigin(0.5);
+
+    // star icons
+    const starNodes = [];
+    const starSpacing = 90;
+    const starStartX = -starSpacing;
+    const starScale = 0.10
+
+    for (let i = 0; i < this.totalStars; i++) {
+      const star = this.add.image(starStartX + i * starSpacing, 20, "star")
+        .setScale(starScale)
+        .setAlpha(i < this.starsCollected ? 1 : 0.2);
+      starNodes.push(star);
+    }
+
+    const retryBtnX = centerX - 140;
+    const retryBtnY = centerY + 120;
+
+    const retryBtn = this.add.rectangle(retryBtnX, retryBtnY, 200, 64, 0x3a6ea5, 1)
+      .setStrokeStyle(2, 0xffffff, 1)
+      .setScrollFactor(0)
+      .setDepth(2002)
+      .setInteractive({ useHandCursor: true });
+
+    const retryText = this.add.text(retryBtnX, retryBtnY, "RETRY", {
+      fontSize: "28px",
+      color: "#ffffff",
+      fontStyle: "bold",
+    })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(2003);
+
+    const mainBtnX = centerX + 140;
+    const mainBtnY = centerY + 120;
+
+    const mainBtn = this.add.rectangle(mainBtnX, mainBtnY, 240, 64, 0x6b4f2a, 1)
+      .setStrokeStyle(2, 0xffffff, 1)
+      .setScrollFactor(0)
+      .setDepth(2002)
+      .setInteractive({ useHandCursor: true });
+
+    const mainText = this.add.text(mainBtnX, mainBtnY, "MAIN PAGE", {
+      fontSize: "28px",
+      color: "#ffffff",
+      fontStyle: "bold",
+    })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(2003);
+
+    container.add([
+      panelShadow,
+      panelBorder,
+      panel,
+      title,
+      starsLabel,
+      ...starNodes,
+    ]);
+
+    // pop-in animation
+    container.setScale(0.85);
+    container.setAlpha(0);
+
+    this.tweens.add({
+      targets: container,
+      scale: 1,
+      alpha: 1,
+      duration: 250,
+      ease: "Back.Out"
+    });
+
+    // hover feedback
+    retryBtn.on("pointerover", () => retryBtn.setFillStyle(0x4a82c2, 1));
+    retryBtn.on("pointerout", () => retryBtn.setFillStyle(0x3a6ea5, 1));
+
+    mainBtn.on("pointerover", () => mainBtn.setFillStyle(0x8a6738, 1));
+    mainBtn.on("pointerout", () => mainBtn.setFillStyle(0x6b4f2a, 1));
+
+    // actions
+    retryBtn.on("pointerup", () => {
+      retryBtn.disableInteractive();
+      mainBtn.disableInteractive();
+      this.retryLevel();
+    });
+
+    mainBtn.on("pointerup", async () => {
+      retryBtn.disableInteractive();
+      mainBtn.disableInteractive();
+      try {
+        await this.goToMainPage();
+      } catch (err) {
+        console.error(err);
+        retryBtn.setInteractive({ useHandCursor: true});
+        mainBtn.setInteractive({ useHandCursor: true });
+      }
+    });
+
+    this.endOverlayBlocker = blocker;
+    this.endOverlayContainer = container;
+  }
+
+  retryLevel() {
+    this.scene.restart({ levelId: this.levelId });
+  }
+
+  async goToMainPage() {
+    try {
+      await this.saveLevelResult();
+    } catch (err) {
+      console.error("Failed to save progress:", err);
+    }
+
+    GameFlowManager.goToLevelSelect(this);
   }
 
 }
