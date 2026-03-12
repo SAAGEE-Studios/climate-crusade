@@ -36,6 +36,8 @@ export class LevelSelectScene extends Phaser.Scene {
         };
 
         this.playButton = document.getElementsByClassName('play-button')[0];
+        this.playButton.style.display = 'flex';
+        
         this.playButton.onclick = () => {
             this.startSelectedLevel();
         };
