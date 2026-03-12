@@ -27,9 +27,11 @@ export class Level01EntryScene extends Phaser.Scene {
     }
 
     create() {
+        this.cutsceneStarted = false;
+        this.instructionsShown = false;
         this.cameras.main.fadeIn(200);
         this.events.on('shutdown', this.shutdown, this);
-        console.log("Here");
+        this.escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
 
         this.titleVideo = this.add.video(
             this.scale.width / 2,
@@ -105,6 +107,12 @@ export class Level01EntryScene extends Phaser.Scene {
     update() {
         if (Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
             this.playCutscene();
+        }
+
+        if (Phaser.Input.Keyboard.JustDown(this.escKey)) {
+            if (this.cutsceneStarted) return;
+            this.scene.stop();
+            GameFlowManager.goToLevelSelect(this);
         }
     }
 
@@ -234,14 +242,31 @@ export class Level01EntryScene extends Phaser.Scene {
         });
 
         this.input.once('pointerdown', () => {
-            this.scene.start('AcidDownpourLevel');
+            this.scene.start('AcidDownpourLevel',{});
         });
 
         this.input.keyboard.once('keydown-SPACE', () => {
-            this.scene.start('AcidDownpourLevel');
+            this.scene.start('AcidDownpourLevel',{});
         });
     }
 
     shutdown() {
+        if (this.titleVideo) {
+            this.titleVideo.stop();
+            this.titleVideo.destroy();
+            this.titleVideo = null;
+        }
+
+        if (this.cutsceneVideo) {
+            this.cutsceneVideo.stop();
+            this.cutsceneVideo.destroy();
+            this.cutsceneVideo = null;
+        }
+
+        if (this.skipUI) {
+            this.skipUI.style.display = 'none';
+        }
+
+        this.input.removeAllListeners();
     }
 }
