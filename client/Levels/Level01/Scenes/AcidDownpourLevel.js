@@ -1,6 +1,6 @@
 import { GameFlowManager } from '../../../Core/GameFlowManager.js';
 import { GameState } from '../../../Core/GameState.js';
-import { saveProgress } from '../../Core/api.js';
+import { saveProgress } from '../../../Core/api.js';
 
 export class AcidDownpourLevel extends Phaser.Scene {
 
