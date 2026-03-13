@@ -6,9 +6,10 @@ export class IntroScene extends Phaser.Scene {
     }
 
     preload() {
+        console.log("Preload");
         this.load.video(
             'introVideo',
-            './client/Shared/IntroScenes/IntroScreen1.mp4',
+            'client/Shared/IntroScenes/IntroScreen1.mp4',
             'loadeddata',
             false,
             true
@@ -20,6 +21,8 @@ export class IntroScene extends Phaser.Scene {
         video.setDisplaySize(this.scale.width/15, this.scale.height/8.4);
         video.setMute(true);
         video.play(true);
+        console.log("Create");
+        console.log(video);
 
         this.input.once('pointerdown', () => {
             this.sound.context.resume();

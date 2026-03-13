@@ -30,6 +30,11 @@ export class LevelSelectScene extends Phaser.Scene {
         this.selectMenu.style.display = 'flex';
 
         this.logoutButton = document.getElementById('logout-button');
+        this.logoutButton.style.display = 'flex'; 
+        this.logoutButton.style.justifyContent = 'center';
+
+        this.deleteAccountButton = document.getElementById('delete-account-button');
+        this.deleteAccountButton.style.display = 'flex';
 
         this.logoutButton.onclick = () => {
             this.logout();
@@ -158,6 +163,10 @@ export class LevelSelectScene extends Phaser.Scene {
         });
     }
 
+    deleteAccount(){
+        
+    }
+
     shutdown() {
         if (this.levelUI) {
             this.levelUI.style.display = 'none';
@@ -177,6 +186,10 @@ export class LevelSelectScene extends Phaser.Scene {
 
         if (this.logoutButton){
             this.logoutButton.style.display = 'none';
+        }
+
+        if (this.deleteAccountButton){
+            this.deleteAccountButton.style.display = 'none';
         }
     }
 }

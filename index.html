@@ -404,10 +404,9 @@
 
         #select-menu {
             opacity: 0.8;
-            min-width: 40px;
-            max-width: 150px;
-            margin-right: 1800px;
-            margin-top: 50px;
+            position: absolute; /* Absolute within the ui-overlay */
+            top: 50px;
+            left: 10px;
             padding-left: 10px;
             display: flex;
             text-decoration: none;
@@ -423,6 +422,21 @@
             font-size: 15px;
             border: none;
             cursor: pointer;
+            text-decoration: none;
+        }
+
+        #delete-account-button {
+            width: 100px;
+            height: 22px;
+            border-radius: 26px;
+            background: linear-gradient(#0299ec, #4ceaff);
+            color: white;
+            font-family: 'Lumios Typewriter Used';
+            font-size: 15px;
+            border: none;
+            cursor: pointer;
+            margin-left: 20px;
+            text-decoration: none;
         }
 
         .level-button,
@@ -456,7 +470,7 @@
 
                 <button id="signup-button">Signup</button>
 
-                <a id="back-to-login" href="#"><u>Back to Login<u></a>
+                <a id="back-to-login" href="#"><u>Back to Login</u></a>
                 <div id="signup-status"></div>
             </div>
 
@@ -528,6 +542,7 @@
 
             <div id="select-menu" style="display: none;">
                 <button id="logout-button">Logout</button>
+                <button id="delete-account-button">Delete Account</button>
             </div>
 
 
