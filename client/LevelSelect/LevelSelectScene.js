@@ -7,10 +7,12 @@ export class LevelSelectScene extends Phaser.Scene {
     constructor() {
         super('LevelSelectScene');
         this.selectedLevelId = null;
+        this.infoPanel = null;
     }
 
     preload() {
         this.load.image('backgroundLevelSelectScene', './client/Shared/LevelSelectScene/Background.png');
+        this.load.image('level_1_info_panel', './client/Shared/LevelSelectScene/Level_1_Info_Panel.png');
     }
 
     create() {
@@ -30,7 +32,7 @@ export class LevelSelectScene extends Phaser.Scene {
         this.selectMenu.style.display = 'flex';
 
         this.logoutButton = document.getElementById('logout-button');
-        this.logoutButton.style.display = 'flex'; 
+        this.logoutButton.style.display = 'flex';
         this.logoutButton.style.justifyContent = 'center';
 
         this.deleteAccountButton = document.getElementById('delete-account-button');
@@ -42,7 +44,7 @@ export class LevelSelectScene extends Phaser.Scene {
 
         this.playButton = document.getElementsByClassName('play-button')[0];
         this.playButton.style.display = 'flex';
-        
+
         this.playButton.onclick = () => {
             this.startSelectedLevel();
         };
@@ -71,6 +73,20 @@ export class LevelSelectScene extends Phaser.Scene {
     handleLevelSelection(levelId) {
         this.selectedLevelId = levelId;
         this.selectionScreen.style.display = 'block';
+        const infoScreen = document.getElementById('info-image');
+
+        const panelMap = {
+            level01: 'Level_1_Info_Panel.png',
+            level02: 'Level_2_Info_Panel.png',
+            level03: 'Level_3_Info_Panel.png',
+            level04: 'Level_4_Info_Panel.png'
+        };
+
+        if (panelMap[levelId]) {
+            infoScreen.src = `./client/Shared/LevelSelectScene/${panelMap[levelId]}`;
+        } else {
+            infoScreen.src = '';
+        }
     }
 
     async startSelectedLevel() {
@@ -107,7 +123,7 @@ export class LevelSelectScene extends Phaser.Scene {
         }
     }
 
-    applyProgressToUI(progressArray){
+    applyProgressToUI(progressArray) {
         const progressMap = {}
 
         progressArray.forEach(row => {
@@ -129,7 +145,7 @@ export class LevelSelectScene extends Phaser.Scene {
             const stars = button.querySelectorAll('.star');
 
             stars.forEach((starImg, index) => {
-                if(index < starsEarned){
+                if (index < starsEarned) {
                     starImg.src = "./client/Shared/LevelSelectScene/FilledStar.png";
                 } else {
                     starImg.src = "./client/Shared/LevelSelectScene/UnfilledStar.png";
@@ -140,11 +156,11 @@ export class LevelSelectScene extends Phaser.Scene {
         this.updateEarthHealth(totalStars);
     }
 
-    updateEarthHealth(totalStars){
+    updateEarthHealth(totalStars) {
         const maxStarsPerLevel = 3;
         const maxStarsTotal = LEVELS.length * maxStarsPerLevel;
 
-        const starContribution = (totalStars/maxStarsTotal) * 50;
+        const starContribution = (totalStars / maxStarsTotal) * 50;
         const healthPercent = 50 + starContribution;
 
         const barFill = document.getElementById('earth-bar-fill');
@@ -154,7 +170,7 @@ export class LevelSelectScene extends Phaser.Scene {
         percentText.textContent = `${Math.round(healthPercent)}%`;
     }
 
-    logout(){
+    logout() {
         this.cameras.main.fadeOut(200);
 
         this.cameras.main.once('camerafadeoutcomplete', () => {
@@ -163,8 +179,8 @@ export class LevelSelectScene extends Phaser.Scene {
         });
     }
 
-    deleteAccount(){
-        
+    deleteAccount() {
+
     }
 
     shutdown() {
@@ -184,11 +200,11 @@ export class LevelSelectScene extends Phaser.Scene {
             this.selectionScreen.style.display = 'none';
         }
 
-        if (this.logoutButton){
+        if (this.logoutButton) {
             this.logoutButton.style.display = 'none';
         }
 
-        if (this.deleteAccountButton){
+        if (this.deleteAccountButton) {
             this.deleteAccountButton.style.display = 'none';
         }
     }
