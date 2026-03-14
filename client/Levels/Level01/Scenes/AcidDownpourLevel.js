@@ -158,6 +158,7 @@ export class AcidDownpourLevel extends Phaser.Scene {
         this.levelFinished = false;
         this.isGameOver = false;
         this.isDying = false;
+        this.levers = [];
 
         this.physics.resume();
         this.input.keyboard.resetKeys();
