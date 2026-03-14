@@ -20,6 +20,7 @@ export class FirstTimeCutsceneScene extends Phaser.Scene {
     }
 
     create() {
+        this.finished = false;
         this.cameras.main.fadeIn(200);
         this.events.on('shutdown', this.shutdown, this);
 

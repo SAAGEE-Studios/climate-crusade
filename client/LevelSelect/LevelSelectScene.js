@@ -1,7 +1,7 @@
 import { GameFlowManager } from '../Core/GameFlowManager.js';
 import { GameState } from '../Core/GameState.js';
 import { LEVELS } from '../Core/LevelRegistry.js';
-import { getProgress } from '../Core/api.js';
+import { getProgress, deleteAccount } from '../Core/api.js';
 
 export class LevelSelectScene extends Phaser.Scene {
     constructor() {
@@ -47,6 +47,10 @@ export class LevelSelectScene extends Phaser.Scene {
 
         this.playButton.onclick = () => {
             this.startSelectedLevel();
+        };
+
+        this.deleteAccountButton.onclick = () => {
+            this.showDeleteConfirmation();
         };
 
         this.selectionScreen = document.getElementById('selection-screen');
@@ -179,8 +183,155 @@ export class LevelSelectScene extends Phaser.Scene {
         });
     }
 
-    deleteAccount() {
+    showDeleteConfirmation() {
 
+        const depth = 500;
+
+        // Dark overlay
+        this.deleteDim = this.add.rectangle(
+            this.scale.width / 2,
+            this.scale.height / 2,
+            this.scale.width,
+            this.scale.height,
+            0x000000,
+            0.6
+        ).setDepth(depth);
+
+        // Password input (DOM element overlay)
+        this.passwordInput = document.createElement('input');
+        this.passwordInput.type = 'password';
+        this.passwordInput.placeholder = 'Enter password to confirm';
+        this.passwordInput.style.position = 'absolute';
+        this.passwordInput.style.left = '50%';
+        this.passwordInput.style.top = '48%';
+        this.passwordInput.style.transform = 'translate(-50%, -50%)';
+        this.passwordInput.style.padding = '10px';
+        this.passwordInput.style.borderRadius = '10px';
+        this.passwordInput.style.border = 'none';
+        this.passwordInput.style.width = '300px';
+        this.passwordInput.style.textAlign = 'center';
+        this.passwordInput.style.fontSize = '16px';
+
+        document.body.appendChild(this.passwordInput);
+
+        // Panel
+        this.deletePanel = this.add.graphics().setDepth(depth + 1);
+        this.deletePanel.fillStyle(0x0b2a3a, 1);
+        this.deletePanel.lineStyle(2, 0x4ceaff, 1);
+        this.deletePanel.fillRoundedRect(610, 390, 700, 300, 25);
+        this.deletePanel.strokeRoundedRect(610, 390, 700, 300, 25);
+
+        // Text
+        this.deleteText = this.add.text(
+            this.scale.width / 2,
+            450,
+            "Are you sure you want to delete your account?\nThis action cannot be undone.",
+            {
+                fontSize: '22px',
+                color: '#ffffff',
+                align: 'center'
+            }
+        ).setOrigin(0.5).setDepth(depth + 2);
+
+        // YES Button
+        this.createDeleteButton("YES", 830, 610, 0xff4444, async () => {
+            const password = this.passwordInput.value;
+
+            if (!password) return;
+
+            try {
+                await deleteAccount(GameState.userId, password);
+
+                this.passwordInput.remove();
+                this.closeDeletePopup();
+
+                GameState.reset();
+                GameFlowManager.goToLogin(this);
+
+            } catch (err) {
+                console.error(err);
+                this.passwordInput.value = '';
+                this.passwordInput.placeholder = 'Incorrect password';
+            }
+        });
+
+        // NO Button
+        this.createDeleteButton("NO", 1090, 610, 0x0299ec, () => {
+            this.closeDeletePopup();
+        });
+    }
+
+    createDeleteButton(label, x, y, color, callback) {
+
+        const depth = 502;
+
+        const button = this.add.graphics().setDepth(depth);
+        button.fillStyle(color, 1);
+        button.fillRoundedRect(x - 80, y - 25, 160, 50, 20);
+
+        const text = this.add.text(x, y, label, {
+            fontSize: '20px',
+            color: '#ffffff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(depth + 1);
+
+        const hitArea = this.add.rectangle(x, y, 160, 50, 0x000000, 0)
+            .setInteractive()
+            .setDepth(depth + 2);
+
+        hitArea.on('pointerover', () => {
+            button.clear();
+            button.fillStyle(Phaser.Display.Color.GetColor(
+                Math.min(255, (color >> 16) + 40),
+                Math.min(255, ((color >> 8) & 0xff) + 40),
+                Math.min(255, (color & 0xff) + 40)
+            ), 1);
+            button.fillRoundedRect(x - 80, y - 25, 160, 50, 20);
+        });
+
+        hitArea.on('pointerout', () => {
+            button.clear();
+            button.fillStyle(color, 1);
+            button.fillRoundedRect(x - 80, y - 25, 160, 50, 20);
+        });
+
+        hitArea.on('pointerdown', callback);
+
+        // Store references for cleanup
+        if (!this.deleteElements) this.deleteElements = [];
+        this.deleteElements.push(button, text, hitArea);
+    }
+
+    closeDeletePopup() {
+        this.deleteDim.destroy();
+        this.deletePanel.destroy();
+        this.deleteText.destroy();
+
+        if (this.deleteElements) {
+            this.deleteElements.forEach(el => el.destroy());
+            this.deleteElements = [];
+        }
+
+        if (this.passwordInput) {
+            this.passwordInput.remove();
+            this.passwordInput = null;
+        }
+    }
+
+    async confirmDelete() {
+        try {
+            // For security you should prompt password,
+            // but assuming already authenticated:
+            await deleteAccount(GameState.userId, prompt("Enter password to confirm:"));
+
+            this.closeDeletePopup();
+
+            GameState.reset();
+            GameFlowManager.goToLogin(this);
+
+        } catch (err) {
+            console.error("Delete failed:", err);
+        }
     }
 
     shutdown() {

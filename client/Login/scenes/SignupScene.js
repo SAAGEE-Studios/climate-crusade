@@ -87,6 +87,7 @@ export class SignupScene extends Phaser.Scene {
             status.style.color = 'green';
 
             setTimeout(() => {
+                status.textContent = '';
                 this.signupUI.style.display = 'none';
                 GameFlowManager.goToLogin(this);
             }, 1200);
