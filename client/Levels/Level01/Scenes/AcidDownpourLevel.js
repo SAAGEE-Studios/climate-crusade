@@ -978,16 +978,16 @@ export class AcidDownpourLevel extends Phaser.Scene {
             this.scale.width / 2,
             this.scale.height / 2,
             500,
-            250,
+            150,
             0x111111,
-            0.9
-        ).setDepth(31);
+            0.6
+        ).setDepth(31).setRounded(20);
 
         // Text
         this.pauseText = this.add.text(
             this.scale.width / 2,
-            this.scale.height / 2 - 40,
-            "Exit Level?",
+            this.scale.height / 2 - 30,
+            "Exit Level?\n",
             {
                 fontSize: '32px',
                 color: '#ffffff'
@@ -996,8 +996,8 @@ export class AcidDownpourLevel extends Phaser.Scene {
 
         this.pauseSubText = this.add.text(
             this.scale.width / 2,
-            this.scale.height / 2 + 10,
-            "Press Y to confirm\nPress N to cancel",
+            this.scale.height / 2 + 20,
+            "Press Y to confirm\n\nPress N to cancel",
             {
                 fontSize: '20px',
                 color: '#cccccc',
