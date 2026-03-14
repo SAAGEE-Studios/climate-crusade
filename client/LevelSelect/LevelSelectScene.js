@@ -8,6 +8,7 @@ export class LevelSelectScene extends Phaser.Scene {
         super('LevelSelectScene');
         this.selectedLevelId = null;
         this.infoPanel = null;
+        this.isDeletePopupOpen = false;
     }
 
     preload() {
@@ -16,6 +17,9 @@ export class LevelSelectScene extends Phaser.Scene {
     }
 
     create() {
+        this.infoPanel = null;
+        this.isDeletePopupOpen = false;
+
         this.cameras.main.fadeIn(200);
         this.events.on('shutdown', this.shutdown, this);
 
@@ -184,6 +188,19 @@ export class LevelSelectScene extends Phaser.Scene {
     }
 
     showDeleteConfirmation() {
+        if (this.isDeletePopupOpen) return;
+        this.isDeletePopupOpen = true;
+
+        // Disable DOM interaction
+        const levelButtons = this.levelUI.querySelectorAll('.level-button');
+
+        levelButtons.forEach(btn => {
+            btn.style.pointerEvents = 'none';
+        });
+
+        this.playButton.style.pointerEvents = 'none';
+        this.logoutButton.style.pointerEvents = 'none';
+        this.deleteAccountButton.style.pointerEvents = 'none';
 
         const depth = 500;
 
@@ -303,6 +320,8 @@ export class LevelSelectScene extends Phaser.Scene {
     }
 
     closeDeletePopup() {
+        this.isDeletePopupOpen = false;
+
         this.deleteDim.destroy();
         this.deletePanel.destroy();
         this.deleteText.destroy();
@@ -316,6 +335,18 @@ export class LevelSelectScene extends Phaser.Scene {
             this.passwordInput.remove();
             this.passwordInput = null;
         }
+
+        const levelButtons = this.levelUI.querySelectorAll('.level-button');
+
+        levelButtons.forEach(btn => {
+            btn.style.pointerEvents = 'auto';
+        });
+
+        this.playButton.style.pointerEvents = 'auto';
+        this.logoutButton.style.pointerEvents = 'auto';
+        this.deleteAccountButton.style.pointerEvents = 'auto';
+
+        this.isModalOpen = false;
     }
 
     async confirmDelete() {
