@@ -17,6 +17,7 @@ export class LoginScene extends Phaser.Scene {
     create() {
         const bg = this.add.image(0, 0, 'backgroundLoginScene').setOrigin(0, 0);
         bg.setDisplaySize(this.scale.width, this.scale.height);
+        this.events.on('shutdown', this.shutdown, this);
 
         if (!GameState.bgMusic) {
             GameState.bgMusic = this.sound.add('calmAdventureMusic', {
@@ -86,6 +87,11 @@ export class LoginScene extends Phaser.Scene {
     }
 
     shutdown() {
+        if (GameState.bgMusic) {
+            GameState.bgMusic.stop();
+            GameState.bgMusic = null;
+        }
+        
         if (this.loginUI) {
             this.loginUI.style.display = 'none';
         }
