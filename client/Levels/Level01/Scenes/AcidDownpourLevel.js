@@ -162,6 +162,7 @@ export class AcidDownpourLevel extends Phaser.Scene {
         this.physics.resume();
         this.input.keyboard.resetKeys();
         this.isPausedMenuOpen = false;
+        this.progressSaved = false;
 
         this.physics.world.gravity.y = 1200;
         const bg = this.add.image(0, 0, 'Level01Background').setOrigin(0, 0);
@@ -709,9 +710,8 @@ export class AcidDownpourLevel extends Phaser.Scene {
 
         if (allDown && !this.levelFinished) {
             this.levelFinished = true;
-
-            this.physics.pause();
-
+            this.physics.pause();     
+            this.saveLevelProgress();
             this.showEndOverlay();
         }
     }
@@ -1020,6 +1020,24 @@ export class AcidDownpourLevel extends Phaser.Scene {
         this.pauseSubText.destroy();
 
         this.physics.resume();
+    }
+
+    async saveLevelProgress() {
+        if (this.progressSaved) return;
+
+        try {
+            await saveProgress(
+                GameState.userId,
+                'level01',
+                this.collectedStars.size
+            );
+
+            this.progressSaved = true;
+            console.log("Progress saved successfully");
+
+        } catch (err) {
+            console.error("Failed to save progress:", err);
+        }
     }
 
     gameOver() {
