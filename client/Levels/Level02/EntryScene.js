@@ -18,6 +18,9 @@ export class Level02EntryScene extends Phaser.Scene {
             'Level2Cutscene',
             './client/Levels/Level02/Cutscenes/ocean_salvage_intro.mp4'
         );
+
+        this.load.audio('Level2VO', 
+        './client/Levels/Level02/Audio/ocean_salvage_en.mp3');
     }
 
     create() {
@@ -114,8 +117,13 @@ export class Level02EntryScene extends Phaser.Scene {
             this.skipToLevel();
         });
 
-        this.cutsceneVideo.setMute(false);
+        // Mute the video — all audio comes from the separate track
+        this.cutsceneVideo.setMute(true);
         this.cutsceneVideo.play();
+
+        // Start the voiceover at the same time
+        this.voiceOver = this.sound.add('Level2VO');
+        this.voiceOver.play();
 
         this.skipUI = document.getElementById('skip-handler-1');
         if (this.skipUI) {
@@ -152,6 +160,12 @@ export class Level02EntryScene extends Phaser.Scene {
             this.cutsceneVideo.stop();
             this.cutsceneVideo.destroy();
             this.cutsceneVideo = null;
+        }
+
+        if (this.voiceOver) {
+            this.voiceOver.stop();
+            this.voiceOver.destroy();
+            this.voiceOver = null;
         }
 
         if (this.skipUI) {
