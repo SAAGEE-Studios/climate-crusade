@@ -11,13 +11,12 @@ export class Level02EntryScene extends Phaser.Scene {
         // Load the static background image
         this.load.image('Level2Background', './client/Levels/Level02/Assets/Backgrounds/Background_Level_2.png');
         
-        // Load the single cutscene video 
+        // FIX 1: Use the modern 2-argument load.video() signature.
+        // The old 5-argument form (loadeddata, noAudio, crossOrigin) was deprecated
+        // in Phaser 3.60+ and causes the video to silently fail to register.
         this.load.video(
             'Level2Cutscene',
-            './client/Levels/Level02/Cutscenes/ocean_salvage_intro.mp4', 
-            'loadeddata',
-            false,
-            true
+            './client/Levels/Level02/Cutscenes/ocean_salvage_intro.mp4'
         );
     }
 
@@ -34,13 +33,11 @@ export class Level02EntryScene extends Phaser.Scene {
             'Level2Background'
         ).setOrigin(0.5);
 
-        // Scale background to fit screen
         this.bgImage.setDisplaySize(this.scale.width, this.scale.height);
 
-        // Start prompt
         this.startText = this.add.text(
             this.scale.width / 2,
-            this.scale.height - 100, // Positioned near the bottom
+            this.scale.height - 100,
             "Press Space to Start",
             {
                 fontSize: '28px',
@@ -65,9 +62,11 @@ export class Level02EntryScene extends Phaser.Scene {
             Phaser.Input.Keyboard.KeyCodes.SPACE
         );
 
-        // Mobile tap support
-        this.input.once('pointerdown', () => {
-            this.playCutscene();
+        // FIX 2: Use 'on' instead of 'once', and guard with cutsceneStarted flag.
+        this.input.on('pointerdown', () => {
+            if (!this.cutsceneStarted) {
+                this.playCutscene();
+            }
         });
     }
 
@@ -88,7 +87,7 @@ export class Level02EntryScene extends Phaser.Scene {
         this.cutsceneStarted = true;
 
         if (this.startText) this.startText.setVisible(false);
-        if (this.bgImage) this.bgImage.setVisible(false); // Hide background while cutscene plays
+        if (this.bgImage) this.bgImage.setVisible(false);
 
         this.cutsceneVideo = this.add.video(
             this.scale.width / 2,
@@ -96,13 +95,20 @@ export class Level02EntryScene extends Phaser.Scene {
             'Level2Cutscene'
         ).setOrigin(0.5);
 
-        // Scale video to fit screen
-        this.cutsceneVideo.setDisplaySize(
-            this.scale.width,
-            this.scale.height
-        );
+        // FIX 3: Read dimensions from the underlying HTML <video> element via the
+        // 'playing' event, not a blind timer. video.width/height on the Phaser Game
+        // Object are only populated after the texture is created (async), so they
+        // were undefined when the timer fired. video.video.videoWidth/videoHeight
+        // are available as soon as the browser starts playback.
+        this.cutsceneVideo.on('playing', () => {
+            if (!this.cutsceneVideo) return;
+            const el = this.cutsceneVideo.video;
+            const vidW = (el && el.videoWidth)  || 1280;
+            const vidH = (el && el.videoHeight) || 720;
+            const scale = Math.min(this.scale.width / vidW, this.scale.height / vidH);
+            this.cutsceneVideo.setDisplaySize(vidW * scale, vidH * scale);
+        });
 
-        // Add a safety check in case the video cannot play or the path is wrong
         this.cutsceneVideo.on('error', () => {
             console.warn('Cutscene video failed to load or play. Skipping directly to level.');
             this.skipToLevel();
@@ -111,7 +117,7 @@ export class Level02EntryScene extends Phaser.Scene {
         this.cutsceneVideo.setMute(false);
         this.cutsceneVideo.play();
 
-        this.skipUI = document.getElementById('skip-handler-1'); 
+        this.skipUI = document.getElementById('skip-handler-1');
         if (this.skipUI) {
             this.skipUI.style.display = 'flex';
             this.skipUI.style.top = '88%';
@@ -129,7 +135,6 @@ export class Level02EntryScene extends Phaser.Scene {
         });
     }
 
-    // Helper function to cleanly handle transitions
     skipToLevel() {
         if (this.skipUI) this.skipUI.style.display = 'none';
 
@@ -139,8 +144,7 @@ export class Level02EntryScene extends Phaser.Scene {
             this.cutsceneVideo = null;
         }
 
-        // Immediately transition to gameplay
-        this.scene.start('DeepPurgeLevel', {}); 
+        this.scene.start('DeepPurgeLevel', {});
     }
 
     shutdown() {
