@@ -13,6 +13,7 @@ export class SignupScene extends Phaser.Scene {
             'buttonclick',
             './client/Shared/Audio/UIButton1.mp3'
         );
+        this.load.image('arol_signup', './client/Shared/LoginScene/Arol_Signup.png');
     }
 
     create() {
@@ -20,6 +21,9 @@ export class SignupScene extends Phaser.Scene {
 
         const bg = this.add.image(0, 0, 'backgroundSignupScene').setOrigin(0, 0);
         bg.setDisplaySize(this.scale.width, this.scale.height);
+
+        const instructions = this.add.image(0, 390, 'arol_signup').setOrigin(0, 0)
+        .setScale(1).setAlpha(0.85);
 
         this.signupUI = document.getElementById('signup-ui');
         this.signupUI.style.display = 'flex';

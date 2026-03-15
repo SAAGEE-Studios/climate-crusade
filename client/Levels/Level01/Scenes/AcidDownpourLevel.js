@@ -368,15 +368,25 @@ export class AcidDownpourLevel extends Phaser.Scene {
             0xffff00
         ).setAlpha(transparencyValue);
 
+        const pathBlock = this.add.rectangle(
+            leftWallWidth / 2 + 520,
+            this.scale.height / 2 - 150,
+            50,
+            100,
+            0x0000ff
+        ).setAlpha(transparencyValue);
+
         this.physics.add.existing(ground, true);
         this.physics.add.existing(ceiling, true);
         this.physics.add.existing(leftWall, true);
         this.physics.add.existing(rightWall, true);
+        this.physics.add.existing(pathBlock, true);
 
         this.physics.add.collider(this.player, ground);
         this.physics.add.collider(this.player, ceiling);
         this.physics.add.collider(this.player, leftWall);
         this.physics.add.collider(this.player, rightWall);
+        this.physics.add.collider(this.player, pathBlock);
     }
 
     createPlatforms() {
@@ -742,10 +752,10 @@ export class AcidDownpourLevel extends Phaser.Scene {
         this.add.text(
             this.scale.width / 2,
             this.scale.height / 2 - 140,
-            "LEVEL COMPLETE",
+            "EMISSION SYSTEMS NEUTRALIZED",
             {
                 fontSize: '42px',
-                color: '#cfe8d4'
+                color: '#ffffff'
             }
         ).setOrigin(0.5).setDepth(22);
 
@@ -793,7 +803,7 @@ export class AcidDownpourLevel extends Phaser.Scene {
         this.add.text(
             this.scale.width / 2,
             this.scale.height / 2 + 40,
-            `Lives Remaining: ${this.lives}`,
+            `Lives Remaining: ${this.lives} \n\n`,
             {
                 fontSize: '24px',
                 color: '#ffffff'
@@ -804,10 +814,10 @@ export class AcidDownpourLevel extends Phaser.Scene {
         this.add.text(
             this.scale.width / 2,
             this.scale.height / 2 + 90,
-            "How to Reduce Acid Rain",
+            "How to Limit Your Contribution To Acid Rain:\n",
             {
                 fontSize: '24px',
-                color: '#cfe8b4'
+                color: '#ffffff'
             }
         ).setOrigin(0.5).setDepth(22);
 
@@ -816,17 +826,18 @@ export class AcidDownpourLevel extends Phaser.Scene {
             "Choose renewable energy options when available",
             "Buy products from companies with clean manufacturing practices"
         ];
-
+    
+        let i = 1;
         tips.forEach((tip, index) => {
 
             const tipText = this.add.text(
                 this.scale.width / 2,
                 this.scale.height / 2 + 130 + index * 35,
-                `• ${tip}`,
+                `${i}. ${tip}`,
                 {
                     fontSize: '22px',
                     color: '#cfe8b4'
-                }
+                },
             )
                 .setOrigin(0.5)
                 .setDepth(22)
@@ -839,12 +850,14 @@ export class AcidDownpourLevel extends Phaser.Scene {
                 duration: 400,
                 delay: 400 + index * 300
             });
+
+            i += 1;
         });
 
         this.exitTextEnd = this.add.text(
             this.scale.width / 2,
             this.scale.height / 2 + 240,
-            "Press Esc to Exit",
+            "\n\nPress Esc to Exit",
             {
                 fontSize: '20px',
                 color: '#ffffff'
@@ -890,7 +903,7 @@ export class AcidDownpourLevel extends Phaser.Scene {
             "GAME OVER",
             {
                 fontSize: '42px',
-                color: '#759116'
+                color: '#ffffff'
             }
         ).setOrigin(0.5).setDepth(22);
 
@@ -898,7 +911,7 @@ export class AcidDownpourLevel extends Phaser.Scene {
         this.starLabel = this.add.text(
             this.scale.width / 2,
             this.scale.height / 2 - 10,
-            "Stars Collected:",
+            "Stars Collected:\n",
             {
                 fontSize: '26px',
                 color: '#ffffff'
@@ -931,9 +944,19 @@ export class AcidDownpourLevel extends Phaser.Scene {
             this.gameOverStars.push(star);
         }
 
-        this.exitText = this.add.text(
+        this.notifyText = this.add.text(
             this.scale.width / 2,
             this.scale.height / 2 + 120,
+            "Level Incomplete - Stars Will Be Discarded",
+            {
+                fontSize: '20px',
+                color: '#ffffff'
+            }
+        ).setOrigin(0.5).setDepth(22);
+
+        this.exitText = this.add.text(
+            this.scale.width / 2,
+            this.scale.height / 2 + 170,
             "Press Esc to Exit",
             {
                 fontSize: '20px',
@@ -944,6 +967,7 @@ export class AcidDownpourLevel extends Phaser.Scene {
         this.gameOverPanel.setAlpha(0);
         this.gameOverTitle.setAlpha(0);
         this.starLabel.setAlpha(0);
+        this.notifyText.setAlpha(0);
         this.exitText.setAlpha(0);
 
         this.tweens.add({
@@ -952,6 +976,7 @@ export class AcidDownpourLevel extends Phaser.Scene {
                 this.gameOverTitle,
                 this.starLabel,
                 ...this.gameOverStars,
+                this.notifyText,
                 this.exitText
             ],
             alpha: 1,
