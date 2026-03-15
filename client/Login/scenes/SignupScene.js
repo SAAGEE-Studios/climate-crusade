@@ -18,6 +18,7 @@ export class SignupScene extends Phaser.Scene {
 
     create() {
         this.cameras.main.fadeIn(200);
+        this.signupLocked = false;
 
         const bg = this.add.image(0, 0, 'backgroundSignupScene').setOrigin(0, 0);
         bg.setDisplaySize(this.scale.width, this.scale.height);
@@ -42,9 +43,13 @@ export class SignupScene extends Phaser.Scene {
         };
 
         signupButton.onclick = async () => {
-            console.log('Handle Signup Reached');
+            if (this.signupLocked) return;
+            this.signupLocked = true;
+
             clickS.play();
-            this.handleSignup();
+            await this.handleSignup();
+
+            this.signupLocked = false;
         }
     }
 
