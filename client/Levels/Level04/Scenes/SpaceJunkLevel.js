@@ -25,9 +25,9 @@ export class SpaceJunkLevel extends Phaser.Scene {
         this.isPaused = false;
 
         this.waveConfigs = [
-            { spawnRate: 1400, duration: 22000, types: ['small', 'medium'] },
-            { spawnRate: 1000, duration: 24000, types: ['small', 'medium', 'large'] },
-            { spawnRate: 650, duration: 26000, types: ['small', 'medium', 'large'] }
+            { spawnRate: 2800, duration: 22000, types: ['small', 'medium'] },
+            { spawnRate: 2000, duration: 24000, types: ['small', 'medium', 'large'] },
+            { spawnRate: 1300, duration: 26000, types: ['small', 'medium', 'large'] }
         ];
 
         this.educationalFacts = [
@@ -235,6 +235,9 @@ export class SpaceJunkLevel extends Phaser.Scene {
     showEducationalFact() {
         this.isPaused = true;
 
+        this.ship.setVelocity(0, 0);
+        this.thruster.setVisible(false);
+
         const overlay = this.add.rectangle(960, 540, 1920, 1080, 0x000000, 0.75).setDepth(150);
 
         const factTitle = this.add.text(960, 360, 'DID YOU KNOW?', {
@@ -272,6 +275,7 @@ export class SpaceJunkLevel extends Phaser.Scene {
             factText.destroy();
             continueText.destroy();
             this.isPaused = false;
+            this.thruster.setVisible(true);
             this.startNextWave();
         });
     }
@@ -288,21 +292,21 @@ export class SpaceJunkLevel extends Phaser.Scene {
             case 'small':
                 textureKey = 'l4_debris_small';
                 points = 10;
-                speedY = Phaser.Math.Between(200, 350);
+                speedY = Phaser.Math.Between(100, 150);
                 break;
             case 'medium':
                 textureKey = 'l4_debris_medium';
                 points = 25;
-                speedY = Phaser.Math.Between(150, 250);
+                speedY = Phaser.Math.Between(75, 175);
                 break;
             case 'large':
                 textureKey = 'l4_debris_large';
                 points = 50;
-                speedY = Phaser.Math.Between(100, 200);
+                speedY = Phaser.Math.Between(50, 150);
                 break;
         }
 
-        speedX = Phaser.Math.Between(-60, 60);
+        speedX = Phaser.Math.Between(-30, 30);
 
         const d = this.debris.create(x, -50, textureKey);
         d.setVelocity(speedX, speedY);
@@ -526,7 +530,7 @@ export class SpaceJunkLevel extends Phaser.Scene {
             });
 
             this.input.keyboard.once('keydown-ESC', () => {
-                this.scene.start('Level04_EntryScene');
+                this.scene.start('Level04EntryScene');
             });
         });
     }
@@ -749,6 +753,11 @@ export class SpaceJunkLevel extends Phaser.Scene {
         });
 
         this.debris.getChildren().slice().forEach(d => {
+            if (d.x < 0 || d.x > 1920) {
+                d.destroy();
+                return; 
+            }
+
             if (d.active && d.y > 1100) {
                 this.health -= 5;
                 d.destroy();
