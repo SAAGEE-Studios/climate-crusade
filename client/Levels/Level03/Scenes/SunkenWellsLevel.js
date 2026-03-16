@@ -746,19 +746,18 @@ export class SunkenWellsLevel extends Phaser.Scene {
     g.destroy();
   }
 
+
+  //LEVEL SAVING FUNCTIONALITY
   async saveLevelResult() {
     if (this.resultSaved) return;
 
     try {
-      const previousStars = GameState.progress[this.levelId]?.stars ?? 0;
-      const bestStars = Math.max(previousStars, this.starsCollected);
-
       //backend save if user logged in
       if (GameState.userId) {
         await saveProgress(
           GameState.userId,
-          this.levelId,
-          bestStars
+          'level03',
+          this.starsCollected
         )
       }
       this.resultSaved = true;
