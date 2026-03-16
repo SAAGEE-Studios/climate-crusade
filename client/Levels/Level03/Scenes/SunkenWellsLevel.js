@@ -96,8 +96,9 @@ export class SunkenWellsLevel extends Phaser.Scene {
     //identification (for saving)
     this.levelId = initData?.levelId ?? "sunken-wells";
 
-    // End state flag
+    //level flags
     this.ended = false;
+    this.isPausedMenuOpen = false;
     this.oxygenActive = false;
     this.endOverlayShown = false;
     this.resultSaved = false;
@@ -189,6 +190,7 @@ export class SunkenWellsLevel extends Phaser.Scene {
   }
 
   initInput(){
+    this.escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC)
     this.cursors = this.input.keyboard.createCursorKeys();
     this.keys = this.input.keyboard.addKeys({
       W: "W",
@@ -265,7 +267,38 @@ export class SunkenWellsLevel extends Phaser.Scene {
   //-------------------------------------------------------------------
 
   update(time, delta) {
+
+    if (Phaser.Input.Keyboard.JustDown(this.escKey)) {
+      if (!this.isPausedMenuOpen && !this.ended) {
+        this.openPauseMenu();
+          return;
+      }
+
+      if (this.ended && this.endOverlayShown) {
+        this.saveLevelResult();
+        this.scene.start('Level03EntryScene');
+      }
+    }
+
+    
     if(this.ended) return;
+
+    if (this.isPausedMenuOpen) {
+
+      if (Phaser.Input.Keyboard.JustDown(this.confirmKey)) {
+        this.physics.resume();
+        this.isPausedMenuOpen = false;
+        this.scene.start('Level03EntryScene');
+        return;
+      }
+
+      if (Phaser.Input.Keyboard.JustDown(this.cancelKey)) {
+        this.closePauseMenu();
+        return;
+      }
+
+      return;
+    }
 
     const dt = delta / 1000;
 
@@ -746,6 +779,70 @@ export class SunkenWellsLevel extends Phaser.Scene {
     g.destroy();
   }
 
+  //PAUSE MENU
+  openPauseMenu() {
+    this.isPausedMenuOpen = true;
+    this.physics.pause();
+
+    // Dark overlay
+    this.pauseDim = this.add.rectangle(
+        this.scale.width / 2,
+        this.scale.height / 2,
+        this.scale.width,
+        this.scale.height,
+        0x000000,
+        0.6
+    ).setDepth(30);
+
+    // Panel box
+    this.pauseBox = this.add.rectangle(
+        this.scale.width / 2,
+        this.scale.height / 2,
+        500,
+        150,
+        0x111111,
+        0.6
+    ).setDepth(31).setRounded(20);
+
+    // Text
+    this.pauseText = this.add.text(
+        this.scale.width / 2,
+        this.scale.height / 2 - 30,
+        "Exit Level?\n",
+        {
+            fontSize: '32px',
+            color: '#ffffff'
+        }
+    ).setOrigin(0.5).setDepth(32);
+
+    this.pauseSubText = this.add.text(
+        this.scale.width / 2,
+        this.scale.height / 2 + 20,
+        "Press Y to confirm\n\nPress N to cancel",
+        {
+            fontSize: '20px',
+            color: '#cccccc',
+            align: 'center'
+        }
+    ).setOrigin(0.5).setDepth(32);
+
+    // Keys
+    this.confirmKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Y);
+    this.cancelKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.N);
+  } 
+
+  closePauseMenu() {
+
+    this.isPausedMenuOpen = false;
+
+    this.pauseDim.destroy();
+    this.pauseBox.destroy();
+    this.pauseText.destroy();
+    this.pauseSubText.destroy();
+
+    this.physics.resume();
+  }
+
 
   //LEVEL SAVING FUNCTIONALITY
   async saveLevelResult() {
@@ -811,7 +908,6 @@ export class SunkenWellsLevel extends Phaser.Scene {
     const panelW = panel.displayWidth;
     const panelH = panel.displayHeight;
 
-
     const panelShadow = this.add.rectangle(
       8,
       8,
@@ -866,41 +962,15 @@ export class SunkenWellsLevel extends Phaser.Scene {
       starNodes.push(star);
     }
 
-    const retryBtnX = centerX - 140;
-    const retryBtnY = centerY + 120;
-
-    const retryBtn = this.add.rectangle(retryBtnX, retryBtnY, 200, 64, 0x3a6ea5, 1)
-      .setStrokeStyle(2, 0xffffff, 1)
-      .setScrollFactor(0)
-      .setDepth(2002)
-      .setInteractive({ useHandCursor: true });
-
-    const retryText = this.add.text(retryBtnX, retryBtnY, "RETRY", {
-      fontSize: "28px",
-      color: "#ffffff",
-      fontStyle: "bold",
-    })
-      .setOrigin(0.5)
-      .setScrollFactor(0)
-      .setDepth(2003);
-
-    const mainBtnX = centerX + 140;
-    const mainBtnY = centerY + 120;
-
-    const mainBtn = this.add.rectangle(mainBtnX, mainBtnY, 240, 64, 0x6b4f2a, 1)
-      .setStrokeStyle(2, 0xffffff, 1)
-      .setScrollFactor(0)
-      .setDepth(2002)
-      .setInteractive({ useHandCursor: true });
-
-    const mainText = this.add.text(mainBtnX, mainBtnY, "MAIN PAGE", {
-      fontSize: "28px",
-      color: "#ffffff",
-      fontStyle: "bold",
-    })
-      .setOrigin(0.5)
-      .setScrollFactor(0)
-      .setDepth(2003);
+    const exitText = this.add.text(
+      0,
+      120,
+      "Press Esc to Exit",
+      {
+        fontSize: '28px',
+        color: '#ffffff'
+      }
+    ).setOrigin(0.5);
 
     container.add([
       panelShadow,
@@ -909,6 +979,7 @@ export class SunkenWellsLevel extends Phaser.Scene {
       title,
       starsLabel,
       ...starNodes,
+      exitText
     ]);
 
     // pop-in animation
@@ -923,48 +994,8 @@ export class SunkenWellsLevel extends Phaser.Scene {
       ease: "Back.Out"
     });
 
-    // hover feedback
-    retryBtn.on("pointerover", () => retryBtn.setFillStyle(0x4a82c2, 1));
-    retryBtn.on("pointerout", () => retryBtn.setFillStyle(0x3a6ea5, 1));
-
-    mainBtn.on("pointerover", () => mainBtn.setFillStyle(0x8a6738, 1));
-    mainBtn.on("pointerout", () => mainBtn.setFillStyle(0x6b4f2a, 1));
-
-    // actions
-    retryBtn.on("pointerup", () => {
-      retryBtn.disableInteractive();
-      mainBtn.disableInteractive();
-      this.retryLevel();
-    });
-
-    mainBtn.on("pointerup", async () => {
-      retryBtn.disableInteractive();
-      mainBtn.disableInteractive();
-      try {
-        await this.goToMainPage();
-      } catch (err) {
-        console.error(err);
-        retryBtn.setInteractive({ useHandCursor: true});
-        mainBtn.setInteractive({ useHandCursor: true });
-      }
-    });
-
     this.endOverlayBlocker = blocker;
     this.endOverlayContainer = container;
-  }
-
-  retryLevel() {
-    this.scene.restart({ levelId: this.levelId });
-  }
-
-  async goToMainPage() {
-    try {
-      await this.saveLevelResult();
-    } catch (err) {
-      console.error("Failed to save progress:", err);
-    }
-
-    GameFlowManager.goToLevelSelect(this);
   }
 
 }
