@@ -7,6 +7,10 @@ export class SpaceJunkLevel extends Phaser.Scene {
         super('Level04_GameplayScene');
     }
 
+    preload() {
+        this.load.image('spaceship', 'client/Levels/Level04/Assets/spaceship.png');
+    }
+
     init() {
         this.score = 0;
         this.health = 100;
@@ -44,7 +48,8 @@ export class SpaceJunkLevel extends Phaser.Scene {
 
         this.earthGlow = this.add.circle(960, 1150, 200, 0x2244aa, 0.15).setDepth(1);
 
-        this.ship = this.physics.add.sprite(960, 880, 'l4_ship');
+        this.ship = this.physics.add.sprite(960, 880, 'spaceship');
+        this.ship.setDisplaySize(60, 61);
         this.ship.setCollideWorldBounds(true);
         this.ship.setDepth(10);
 
