@@ -5,6 +5,8 @@ import { saveProgress } from '../../../Core/api.js';
 export class SpaceJunkLevel extends Phaser.Scene {
     constructor() {
         super('Level04_GameplayScene');
+
+        this.isPausedMenuOpen = false;
     }
 
     init() {
@@ -39,6 +41,9 @@ export class SpaceJunkLevel extends Phaser.Scene {
 
     create() {
         this.add.rectangle(960, 540, 1920, 1080, 0x050520).setDepth(0);
+        this.confirmKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Y);
+        this.cancelKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.N);
+        this.escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
 
         this.createStarfield();
 
@@ -755,7 +760,7 @@ export class SpaceJunkLevel extends Phaser.Scene {
         this.debris.getChildren().slice().forEach(d => {
             if (d.x < 0 || d.x > 1920) {
                 d.destroy();
-                return; 
+                return;
             }
 
             if (d.active && d.y > 1100) {
@@ -775,5 +780,86 @@ export class SpaceJunkLevel extends Phaser.Scene {
                 s.destroy();
             }
         });
+
+        if (Phaser.Input.Keyboard.JustDown(this.escKey)) {
+            if (!this.isPausedMenuOpen && !this.levelComplete && !this.gameOver) {
+                this.openPauseMenu();
+                return;
+            }
+        }
+
+        if (this.isPausedMenuOpen) {
+
+            if (Phaser.Input.Keyboard.JustDown(this.confirmKey)) {
+                this.physics.resume();
+                this.isPausedMenuOpen = false;
+                this.scene.start('Level04EntryScene');
+                return;
+            }
+
+            if (Phaser.Input.Keyboard.JustDown(this.cancelKey)) {
+                this.closePauseMenu();
+                return;
+            }
+
+            return;
+        }
+    }
+
+    openPauseMenu() {
+        this.isPausedMenuOpen = true;
+        this.physics.pause();
+
+        // Dark overlay
+        this.pauseDim = this.add.rectangle(
+            this.scale.width / 2,
+            this.scale.height / 2,
+            this.scale.width,
+            this.scale.height,
+            0x000000,
+            0.6
+        ).setDepth(30);
+
+        // Panel box
+        this.pauseBox = this.add.rectangle(
+            this.scale.width / 2,
+            this.scale.height / 2,
+            500,
+            150,
+            0x111111,
+            0.6
+        ).setDepth(31).setRounded(20);
+
+        // Text
+        this.pauseText = this.add.text(
+            this.scale.width / 2,
+            this.scale.height / 2 - 30,
+            "Exit Level?\n",
+            {
+                fontSize: '32px',
+                color: '#ffffff'
+            }
+        ).setOrigin(0.5).setDepth(32);
+
+        this.pauseSubText = this.add.text(
+            this.scale.width / 2,
+            this.scale.height / 2 + 20,
+            "Press Y to confirm\n\nPress N to cancel",
+            {
+                fontSize: '20px',
+                color: '#cccccc',
+                align: 'center'
+            }
+        ).setOrigin(0.5).setDepth(32);
+    }
+
+
+    closePauseMenu() {
+        this.isPausedMenuOpen = false;
+        this.pauseDim.destroy();
+        this.pauseBox.destroy();
+        this.pauseText.destroy();
+        this.pauseSubText.destroy();
+        this.physics.resume();
     }
 }
