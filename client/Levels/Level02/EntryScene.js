@@ -20,7 +20,7 @@ export class Level02EntryScene extends Phaser.Scene {
         );
 
         this.load.audio('Level2VO', 
-        './client/Levels/Level02/Cutscenes/Audio/ocean_salvage_en.mp3');
+        './client/Levels/Level02/Cutscenes/Audio/ocean_salvage_enF.mp3');
     }
 
     create() {
