@@ -21,10 +21,10 @@ import { Level04CutsceneScene } from '../Levels/Level04/Cutscenes/CutsceneScene.
 import { SpaceJunkLevel } from '../Levels/Level04/Scenes/SpaceJunkLevel.js';
 
 export const SCENES = [
-  //IntroScene,
-  //LoginScene,
-  //SignupScene,
-  //FirstTimeCutsceneScene,
+  IntroScene,
+  LoginScene,
+  SignupScene,
+  FirstTimeCutsceneScene,
   LevelSelectScene,
   //------Level 01--------
   Level01EntryScene,
