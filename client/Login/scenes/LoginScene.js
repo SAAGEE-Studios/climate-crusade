@@ -43,9 +43,15 @@ export class LoginScene extends Phaser.Scene {
             });
         };
 
+        let loginLocked = false;
+
         loginButton.onclick = async () => {
+            if (loginLocked) return;
+            loginLocked = true;
+
             click.play();
             await this.handleLogin();
+            loginLocked = false;
         };
     }
 
