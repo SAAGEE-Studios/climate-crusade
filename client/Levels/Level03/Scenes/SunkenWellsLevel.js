@@ -748,16 +748,10 @@ export class SunkenWellsLevel extends Phaser.Scene {
 
   async saveLevelResult() {
     if (this.resultSaved) return;
-    this.resultSaved = true;
 
     try {
       const previousStars = GameState.progress[this.levelId]?.stars ?? 0;
       const bestStars = Math.max(previousStars, this.starsCollected);
-
-      //local runtime save
-      GameState.progress[this.levelId] = {
-        stars: bestStars
-      }
 
       //backend save if user logged in
       if (GameState.userId) {
@@ -767,7 +761,8 @@ export class SunkenWellsLevel extends Phaser.Scene {
           bestStars
         )
       }
-
+      this.resultSaved = true;
+      
       console.log("Progress saved;", this.levelId, bestStars);
     } catch(error){
       console.error("Failed to save progress", error);
