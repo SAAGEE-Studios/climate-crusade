@@ -1,5 +1,4 @@
 import { GameFlowManager } from '../../Core/GameFlowManager.js';
-import { GameState } from '../../Core/GameState.js';
 
 export class Level03EntryScene extends Phaser.Scene {
   constructor() {
@@ -52,7 +51,8 @@ export class Level03EntryScene extends Phaser.Scene {
       'Press Space or Tap to Start',
       {
         fontSize: '30px',
-        color: '#ffffff'
+        color: '#ffffff',
+        fontStyle: 'bold'
       }
     )
       .setOrigin(0.5)
