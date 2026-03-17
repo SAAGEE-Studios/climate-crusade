@@ -50,25 +50,33 @@ export class DeepPurgeLevel extends Phaser.Scene {
         this.hookedObject = null;
         this.paused = false;
         this.levelFinished = false;
+        // Tracking placed items for overlap prevention
+        this.placedItems = []; 
     }
 
     preload() {
         this.load.image('Level02Background', './client/Levels/Level02/Assets/Backgrounds/Background_Level_2.png');
         this.load.image('starCollect', './client/Levels/Level02/Assets/Items/Star_to_collect.png');
         this.load.image('boat', './client/Levels/Level02/Assets/Items/Boat.png');
-    }
 
+        // Load Trash Assets
+        this.load.image('bottle', './client/Levels/Level02/Assets/Items/Plastic_Bottle.webp');
+        this.load.image('wrap', './client/Levels/Level02/Assets/Items/Plastic_Wrap.webp');
+        this.load.image('tire', './client/Levels/Level02/Assets/Items/Tire.webp');
+        this.load.image('bag', './client/Levels/Level02/Assets/Items/Trash_Bag.webp');
+    }
     create() {
         this.levelFinished = false;
 
         this.createBackground();
         this.createBoat();
         this.createStars();
+        this.createTrash(); // Added trash creation
         this.createHook();
         this.createHUD();
         this.createInputs();
         this.createTimer();
-
+        
         const hint = this.add.text(this.scale.width / 2, this.scale.height / 2,
             "SPACE or TAP to cast hook", {
                 fontFamily: "monospace", fontSize: "14px", color: "#ffffff",
@@ -122,48 +130,61 @@ export class DeepPurgeLevel extends Phaser.Scene {
     // ── Stars ───────────────────────────────────────────────────────────────
     createStars() {
         this.starGroup = this.add.group();
-        const placed = [];
-
         for (let i = 0; i < TOTAL_STARS; i++) {
-            let posX, posY, attempts = 0;
-            let isValid = false;
-
-            do {
-                // FIX 2: Pick an angle inside the hook's ±60 degree swing (using ±52 for a safety buffer)
-                const randomAngle = Phaser.Math.Between(-52, 52);
-                const rad = Phaser.Math.DegToRad(randomAngle + 90);
-
-                // FIX 3: Pick a distance the hook can actually reach (max rope is 720, so 63 0 is safe)
-                const dist = Phaser.Math.Between(180, 630);
-
-                // Calculate exact X and Y from the boat's rope origin
-                posX = this.ropeOriginX + Math.cos(rad) * dist;
-                posY = this.ropeOriginY + Math.sin(rad) * dist;
-
-                attempts++;
-
-                // FIX 4: Validate! Must be visually underwater (Y > 430) AND not overlapping other stars
-                const isDeepEnough = posY > 430; 
-                const isFarFromOthers = !placed.some(p => Phaser.Math.Distance.Between(posX, posY, p.x, p.y) < 130);
-                
-                isValid = isDeepEnough && isFarFromOthers;
-
-            } while (!isValid && attempts < 100);
-
-            placed.push({ x: posX, y: posY });
-
-            const star = this.add.image(posX, posY, 'starCollect')
-                .setDisplaySize(48, 48)
-                .setDepth(9);
-            star.active = true;
-
-            this.tweens.add({
-                targets: star, alpha: 0.6, yoyo: true, repeat: -1,
-                duration: 900, ease: "Sine.easeInOut",
-            });
-
-            this.starGroup.add(star);
+            const pos = this.getValidPosition();
+            if (pos) {
+                const star = this.add.image(pos.x, pos.y, 'starCollect')
+                    .setDisplaySize(48, 48)
+                    .setDepth(9);
+                star.active = true;
+                this.starGroup.add(star);
+                this.placedItems.push(pos);
+            }
         }
+    }
+    // New method to incorporate trash into the level
+    createTrash() {
+        this.trashGroup = this.add.group();
+        const trashTypes = ['bottle', 'wrap', 'tire', 'bag'];
+
+        for (let i = 0; i < 4; i++) {
+            const pos = this.getValidPosition();
+            if (pos) {
+                const type = Phaser.Math.RND.pick(trashTypes);
+                const trash = this.add.image(pos.x, pos.y, type)
+                    .setDisplaySize(55, 55)
+                    .setDepth(9);
+                trash.active = true;
+                this.trashGroup.add(trash);
+                this.placedItems.push(pos);
+            }
+        }
+    }
+
+    // Helper to find non-overlapping positions for both stars and trash
+    getValidPosition() {
+        let posX, posY, attempts = 0;
+        let isValid = false;
+
+        do {
+            const randomAngle = Phaser.Math.Between(-52, 52);
+            const rad = Phaser.Math.DegToRad(randomAngle + 90);
+            const dist = Phaser.Math.Between(180, 630);
+
+            posX = this.ropeOriginX + Math.cos(rad) * dist;
+            posY = this.ropeOriginY + Math.sin(rad) * dist;
+
+            attempts++;
+
+            const isDeepEnough = posY > 430; 
+            const isFarFromOthers = !this.placedItems.some(p => 
+                Phaser.Math.Distance.Between(posX, posY, p.x, p.y) < 110
+            );
+            
+            isValid = isDeepEnough && isFarFromOthers;
+        } while (!isValid && attempts < 100);
+
+        return isValid ? { x: posX, y: posY } : null;
     }
 
     // ── Hook / Rope ─────────────────────────────────────────────────────────
@@ -255,21 +276,35 @@ export class DeepPurgeLevel extends Phaser.Scene {
     }
 
     checkStarCollision(hp) {
-        this.starGroup.getChildren().forEach((star) => {
-            if (!star.active) return;
-            if (Phaser.Math.Distance.Between(hp.x, hp.y, star.x, star.y) < 28) {
-                this.hookedObject = star;
-                star.active = false;
-                this.starsCollected++;
-                this.hookReturning = true;
-                this.updateStarHUD();
+    // Don't check if we already have something hooked
+    if (this.hookedObject) return;
 
-                if (this.starsCollected >= TOTAL_STARS) {
-                    this.time.delayedCall(600, () => this.endGame(true));
-                }
+    const allItems = [...this.starGroup.getChildren(), ...this.trashGroup.getChildren()];
+
+    for (const item of allItems) {
+        if (!item.active) continue;
+
+        if (Phaser.Math.Distance.Between(hp.x, hp.y, item.x, item.y) < 28) {
+            this.hookedObject = item;
+            item.active = false;
+            this.hookReturning = true;
+
+            // Only stars count toward progress
+            if (item.texture.key === 'starCollect') {
+                this.starsCollected++;
+                this.updateStarHUD();
             }
-        });
+
+            // Check win condition AFTER updating the counter, outside the loop
+            break; // Stop checking other items once one is hooked
+        }
     }
+
+    // Win condition checked once, after the loop
+    if (this.starsCollected >= TOTAL_STARS) {
+        this.time.delayedCall(600, () => this.endGame(true));
+    }
+}
 
     // ── HUD (drawn directly on this scene) ──────────────────────────────────
     createHUD() {
@@ -365,34 +400,53 @@ export class DeepPurgeLevel extends Phaser.Scene {
     }
 
     showWinOverlay() {
-        // Gradient background
+        const cx = this.scale.width / 2;
+        const cy = this.scale.height / 2;
+
+        // Full-screen semi-transparent overlay (game still visible behind)
         const bg = this.add.graphics().setDepth(60);
-        bg.fillGradientStyle(0x0d5a8c, 0x0d5a8c, 0x020c18, 0x020c18, 1);
-        bg.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+        bg.fillStyle(0x0d2a4a, 0.55);
+        bg.fillRect(0, 0, this.scale.width, this.scale.height);
+
+        // Panel — centred, sized to content
+        const panelW = 440;
+        const panelH = 360;
+        const panelX = cx - panelW / 2;
+        const panelY = cy - panelH / 2;
 
         const panel = this.add.graphics().setDepth(61);
-        panel.fillStyle(0x000000, 0.6);
-        panel.fillRoundedRect(200, 130, 400, 340, 20);
-        panel.lineStyle(2, 0x4ecdc4, 0.8);
-        panel.strokeRoundedRect(200, 130, 400, 340, 20);
+        panel.fillStyle(0x020c18, 0.75);
+        panel.fillRoundedRect(panelX, panelY, panelW, panelH, 20);
+        panel.lineStyle(2, 0x4ecdc4, 0.9);
+        panel.strokeRoundedRect(panelX, panelY, panelW, panelH, 20);
 
-        this.add.text(400, 175, "🌊 OCEAN CLEARED!", {
-            fontFamily: "monospace", fontSize: "42px", color: "#4ecdc4", fontStyle: "bold",
+        // Title
+        this.add.text(cx, panelY + 45, "🌊 OCEAN CLEARED!", {
+            fontFamily: "monospace", fontSize: "30px",
+            color: "#4ecdc4", fontStyle: "bold",
         }).setOrigin(0.5).setDepth(62);
 
-        this.add.text(400, 220, "You helped save Life Below Water", {
-            fontFamily: "monospace", fontSize: "28px", color: "#aaddff",
+        // Subtitle
+        this.add.text(cx, panelY + 90, "You helped save Life Below Water", {
+            fontFamily: "monospace", fontSize: "16px", color: "#aaddff",
         }).setOrigin(0.5).setDepth(62);
 
-        this.add.text(400, 260,
-            '"Take urgent action to combat climate change\nand it\'s impacts"',
-            { fontFamily: "monospace", fontSize: "25px", color: "#88ccff", align: "center" }
+        // Quote — constrained word wrap to panel width
+        this.add.text(cx, panelY + 140,
+            '"Take urgent action to combat\nclimate change and its impacts"',
+            {
+                fontFamily: "monospace", fontSize: "14px",
+                color: "#88ccff", align: "center",
+                wordWrap: { width: panelW - 60 },
+            }
         ).setOrigin(0.5).setDepth(62);
 
+        // Stars
         for (let i = 0; i < 3; i++) {
             const g = this.add.graphics().setDepth(62);
             const filled = i < this.starsCollected;
-            drawStar(g, 340 + i * 60, 315, 20, filled ? 0xffe066 : 0x334466, filled ? 1 : 0.4, 0.5);
+            drawStar(g, cx - 60 + i * 60, panelY + 215, 20,
+                filled ? 0xffe066 : 0x334466, filled ? 1 : 0.4, 0.5);
             if (filled) {
                 this.tweens.add({
                     targets: g, scaleX: 1.2, scaleY: 1.2,
@@ -402,69 +456,102 @@ export class DeepPurgeLevel extends Phaser.Scene {
             }
         }
 
-
+        // Time remaining
         const m = Math.floor(this.timeLeft / 60);
         const s = this.timeLeft % 60;
-        this.add.text(400, 390, `Time remaining: ${m}:${s.toString().padStart(2, "0")}`, {
+        this.add.text(cx, panelY + 265,
+            `Time remaining: ${m}:${s.toString().padStart(2, "0")}`, {
             fontFamily: "monospace", fontSize: "13px", color: "#aaddff",
         }).setOrigin(0.5).setDepth(62);
 
-        // Play Again button
+        // Play Again button — centred inside panel
+        const btnW = 200, btnH = 44;
+        const btnX = cx - btnW / 2;
+        const btnY = panelY + panelH - 70;
+
         const btn = this.add.graphics().setDepth(62);
         btn.fillStyle(0x4ecdc4, 1);
-        btn.fillRoundedRect(300, 420, 200, 44, 10);
-        this.add.text(400, 442, "PLAY AGAIN", {
-            fontFamily: "monospace", fontSize: "16px", color: "#001122", fontStyle: "bold",
+        btn.fillRoundedRect(btnX, btnY, btnW, btnH, 10);
+        this.add.text(cx, btnY + btnH / 2, "PLAY AGAIN", {
+            fontFamily: "monospace", fontSize: "16px",
+            color: "#001122", fontStyle: "bold",
         }).setOrigin(0.5).setDepth(63);
 
-        btn.setInteractive(new Phaser.Geom.Rectangle(300, 420, 200, 44), Phaser.Geom.Rectangle.Contains);
-        btn.on("pointerover", () => { btn.clear(); btn.fillStyle(0x7eede6, 1); btn.fillRoundedRect(300, 420, 200, 44, 10); });
-        btn.on("pointerout",  () => { btn.clear(); btn.fillStyle(0x4ecdc4, 1); btn.fillRoundedRect(300, 420, 200, 44, 10); });
+        btn.setInteractive(
+            new Phaser.Geom.Rectangle(btnX, btnY, btnW, btnH),
+            Phaser.Geom.Rectangle.Contains
+        );
+        btn.on("pointerover", () => { btn.clear(); btn.fillStyle(0x7eede6, 1); btn.fillRoundedRect(btnX, btnY, btnW, btnH, 10); });
+        btn.on("pointerout",  () => { btn.clear(); btn.fillStyle(0x4ecdc4, 1); btn.fillRoundedRect(btnX, btnY, btnW, btnH, 10); });
         btn.on("pointerdown", () => this.scene.restart());
 
         this._spawnCelebration();
     }
 
     showLoseOverlay() {
+        const cx = GAME_WIDTH / 2;
+        const cy = GAME_HEIGHT / 2;
+
+        // Full-screen semi-transparent overlay
         const bg = this.add.graphics().setDepth(60);
-        bg.fillGradientStyle(0x06101e, 0x06101e, 0x020c18, 0x020c18, 1);
+        bg.fillStyle(0x06101e, 0.55);
         bg.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
+        // Panel — centred
+        const panelW = 440;
+        const panelH = 340;
+        const panelX = cx - panelW / 2;
+        const panelY = cy - panelH / 2;
+
         const panel = this.add.graphics().setDepth(61);
-        panel.fillStyle(0x000000, 0.65);
-        panel.fillRoundedRect(200, 140, 400, 320, 20);
-        panel.lineStyle(2, 0xff6666, 0.7);
-        panel.strokeRoundedRect(200, 140, 400, 320, 20);
+        panel.fillStyle(0x020c18, 0.75);
+        panel.fillRoundedRect(panelX, panelY, panelW, panelH, 20);
+        panel.lineStyle(2, 0xff6666, 0.8);
+        panel.strokeRoundedRect(panelX, panelY, panelW, panelH, 20);
 
-        this.add.text(400, 185, "⏰ TIME'S UP!", {
-            fontFamily: "monospace", fontSize: "28px", color: "#ff6666", fontStyle: "bold",
+        // Title
+        this.add.text(cx, panelY + 50, "⏰ TIME'S UP!", {
+            fontFamily: "monospace", fontSize: "28px",
+            color: "#ff6666", fontStyle: "bold",
         }).setOrigin(0.5).setDepth(62);
 
-        this.add.text(400, 225, "The ocean still needs your help...", {
-            fontFamily: "monospace", fontSize: "13px", color: "#aaddff",
+        // Subtitle
+        this.add.text(cx, panelY + 95, "The ocean still needs your help...", {
+            fontFamily: "monospace", fontSize: "14px", color: "#aaddff",
         }).setOrigin(0.5).setDepth(62);
 
-        this.add.text(400, 265, "Stars collected:", {
-            fontFamily: "monospace", fontSize: "12px", color: "#ffe066",
+        // Stars label
+        this.add.text(cx, panelY + 140, "Stars collected:", {
+            fontFamily: "monospace", fontSize: "13px", color: "#ffe066",
         }).setOrigin(0.5).setDepth(62);
 
+        // Stars
         for (let i = 0; i < 3; i++) {
             const g = this.add.graphics().setDepth(62);
             const filled = i < this.starsCollected;
-            drawStar(g, 340 + i * 60, 305, 18, filled ? 0xffe066 : 0x334466, filled ? 1 : 0.35, 0.4);
+            drawStar(g, cx - 60 + i * 60, panelY + 190, 18,
+                filled ? 0xffe066 : 0x334466, filled ? 1 : 0.35, 0.4);
         }
 
+        // Try Again button — centred inside panel
+        const btnW = 200, btnH = 44;
+        const btnX = cx - btnW / 2;
+        const btnY = panelY + panelH - 70;
 
         const btn = this.add.graphics().setDepth(62);
         btn.fillStyle(0xff6666, 1);
-        btn.fillRoundedRect(300, 410, 200, 44, 10);
-        this.add.text(400, 432, "TRY AGAIN", {
-            fontFamily: "monospace", fontSize: "16px", color: "#ffffff", fontStyle: "bold",
+        btn.fillRoundedRect(btnX, btnY, btnW, btnH, 10);
+        this.add.text(cx, btnY + btnH / 2, "TRY AGAIN", {
+            fontFamily: "monospace", fontSize: "16px",
+            color: "#ffffff", fontStyle: "bold",
         }).setOrigin(0.5).setDepth(63);
 
-        btn.setInteractive(new Phaser.Geom.Rectangle(300, 410, 200, 44), Phaser.Geom.Rectangle.Contains);
-        btn.on("pointerover", () => { btn.clear(); btn.fillStyle(0xff9999, 1); btn.fillRoundedRect(300, 410, 200, 44, 10); });
-        btn.on("pointerout",  () => { btn.clear(); btn.fillStyle(0xff6666, 1); btn.fillRoundedRect(300, 410, 200, 44, 10); });
+        btn.setInteractive(
+            new Phaser.Geom.Rectangle(btnX, btnY, btnW, btnH),
+            Phaser.Geom.Rectangle.Contains
+        );
+        btn.on("pointerover", () => { btn.clear(); btn.fillStyle(0xff9999, 1); btn.fillRoundedRect(btnX, btnY, btnW, btnH, 10); });
+        btn.on("pointerout",  () => { btn.clear(); btn.fillStyle(0xff6666, 1); btn.fillRoundedRect(btnX, btnY, btnW, btnH, 10); });
         btn.on("pointerdown", () => this.scene.restart());
     }
 
