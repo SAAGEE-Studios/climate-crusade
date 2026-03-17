@@ -29,6 +29,7 @@ export const GAME_DURATION = 120;
 export const HOOK_EXTEND_SPEED = 4;
 export const MAX_ROPE_LENGTH = 720;
 export const HOOK_SWING = 75;
+export const TRASH_SPAWNED = 4;
 
 // =========================================================================
 // MAIN GAME SCENE 
@@ -40,6 +41,7 @@ export class DeepPurgeLevel extends Phaser.Scene {
 
     init() {
         this.starsCollected = 0;
+        this.trashCleared = 0; // Track how many trash items are picked up
         this.timeLeft = GAME_DURATION;
         this.hookAngle = 0;
         this.hookSpeed = 2.4;
@@ -147,12 +149,12 @@ export class DeepPurgeLevel extends Phaser.Scene {
         this.trashGroup = this.add.group();
         const trashTypes = ['bottle', 'wrap', 'tire', 'bag'];
 
-        for (let i = 0; i < 4; i++) {
+        for (let i = 0; i < TRASH_SPAWNED; i++) {
             const pos = this.getValidPosition();
             if (pos) {
                 const type = Phaser.Math.RND.pick(trashTypes);
                 const trash = this.add.image(pos.x, pos.y, type)
-                    .setDisplaySize(55, 55)
+                    .setDisplaySize(75, 75)
                     .setDepth(9);
                 trash.active = true;
                 this.trashGroup.add(trash);
@@ -289,10 +291,13 @@ export class DeepPurgeLevel extends Phaser.Scene {
             item.active = false;
             this.hookReturning = true;
 
-            // Only stars count toward progress
+            // Stars still update the HUD but don't trigger the win anymore
             if (item.texture.key === 'starCollect') {
                 this.starsCollected++;
                 this.updateStarHUD();
+            } else {
+                // If it's not a star, it's trash!
+                this.trashCleared++;
             }
 
             // Check win condition AFTER updating the counter, outside the loop
@@ -301,7 +306,10 @@ export class DeepPurgeLevel extends Phaser.Scene {
     }
 
     // Win condition checked once, after the loop
-    if (this.starsCollected >= TOTAL_STARS) {
+    // if (this.starsCollected >= TOTAL_STARS) {
+    //     this.time.delayedCall(600, () => this.endGame(true));
+    // }
+    if (this.trashCleared >= TRASH_SPAWNED) {
         this.time.delayedCall(600, () => this.endGame(true));
     }
 }
