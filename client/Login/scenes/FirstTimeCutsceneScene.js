@@ -20,6 +20,7 @@ export class FirstTimeCutsceneScene extends Phaser.Scene {
     }
 
     create() {
+        this.finished = false;
         this.cameras.main.fadeIn(200);
         this.events.on('shutdown', this.shutdown, this);
 
@@ -31,7 +32,7 @@ export class FirstTimeCutsceneScene extends Phaser.Scene {
 
         video.setDisplaySize(this.scale.width / 7, this.scale.height / 4);
         video.setMute(false);
-        video.play(true);
+        video.play();
 
         if (GameState.bgMusic) {
             GameState.bgMusic.setMute(true);

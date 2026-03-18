@@ -43,9 +43,15 @@ export class LoginScene extends Phaser.Scene {
             });
         };
 
+        let loginLocked = false;
+
         loginButton.onclick = async () => {
+            if (loginLocked) return;
+            loginLocked = true;
+
             click.play();
             await this.handleLogin();
+            loginLocked = false;
         };
     }
 
@@ -64,20 +70,26 @@ export class LoginScene extends Phaser.Scene {
         try {
             const data = await login(username, password);
 
+            status.textContent = "Logging  in.....";
+            status.style.color = 'green';
+
             GameState.userId = data.user_id;
             GameState.isFirstTime = data.first_time_play;
 
-            this.loginUI.style.display = 'none';
+            setTimeout(() => {
+                status.textContent = "";
+                this.loginUI.style.display = 'none';
 
-            this.cameras.main.fadeOut(200);
+                this.cameras.main.fadeOut(200);
 
-            this.cameras.main.once('camerafadeoutcomplete', () => {
-                if (GameState.isFirstTime) {
-                    GameFlowManager.goToFirstTimeCutscene(this);
-                } else {
-                    GameFlowManager.goToLevelSelect(this);
-                }
-            });
+                this.cameras.main.once('camerafadeoutcomplete', () => {
+                    if (GameState.isFirstTime) {
+                        GameFlowManager.goToFirstTimeCutscene(this);
+                    } else {
+                        GameFlowManager.goToLevelSelect(this);
+                    }
+                });
+            }, 2000);
 
         } catch (err) {
             status.textContent = "Username or Password Incorrect";
@@ -91,7 +103,7 @@ export class LoginScene extends Phaser.Scene {
             GameState.bgMusic.stop();
             GameState.bgMusic = null;
         }
-        
+
         if (this.loginUI) {
             this.loginUI.style.display = 'none';
         }

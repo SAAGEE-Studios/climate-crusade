@@ -327,6 +327,15 @@
             opacity: 0.9;
         }
 
+        #info-image {
+            position: absolute;
+            flex-shrink: 0;
+            right: 0px;
+            top: 15px;
+            opacity: 0.9;
+            transform: scale(0.95);
+        }
+
         #selection-image {
             width: 720px;
             height: 900px;
@@ -404,7 +413,7 @@
 
         #select-menu {
             opacity: 0.8;
-            position: absolute; /* Absolute within the ui-overlay */
+            position: absolute; 
             top: 50px;
             left: 10px;
             padding-left: 10px;
@@ -537,6 +546,7 @@
             
             <div id="selection-screen" style="display: none;">
                 <img id = "screen-image" src = "./client/Shared/LevelSelectScene/Screen.png" />
+                <img id = "info-image" src = "" />
                 <img class = "play-button" src = "./client/Shared/LevelSelectScene/PlayButton.png" />
             </div>
 
