@@ -1,6 +1,7 @@
 import { GameFlowManager } from '../../../Core/GameFlowManager.js'; 
 import { GameState } from '../../../Core/GameState.js';
 import {LevelSelectScene} from '../../../LevelSelect/LevelSelectScene.js';
+import { saveProgress } from '../../../Core/api.js'; 
 
 // =========================================================================
 // HELPER FUNCTIONS
@@ -396,15 +397,32 @@ export class DeepPurgeLevel extends Phaser.Scene {
     }
 
     // ── End Game ─────────────────────────────────────────────────────────────
-    endGame(won) {
+    async endGame(won) {
         if (this.levelFinished) return;
         this.levelFinished = true;
         this.paused = true;
         if (this.timerEvent) this.timerEvent.remove();
 
-        this.time.delayedCall(400, () => {
-            won ? this.showWinOverlay() : this.showLoseOverlay();
-        });
+        // this.time.delayedCall(400, () => {
+        //     won ? this.showWinOverlay() : this.showLoseOverlay();
+        // });
+        //To updates the levelselect scene
+        if (won) {
+        // Check if we actually have a userId before trying to save
+        if (GameState.userId) {
+            try {
+                console.log(`Saving ${this.starsCollected} stars for user ${GameState.userId}`);
+                await saveProgress(GameState.userId, 'level02', this.starsCollected);
+            } catch (err) {
+                console.error("Failed to save progress:", err.message);
+            }
+        } else {
+            console.warn("No User ID found. Progress will not be saved.");
+        }
+        this.showWinOverlay();
+    } else {
+        this.showLoseOverlay();
+    }
     }
 
     showWinOverlay() {
@@ -497,13 +515,13 @@ export class DeepPurgeLevel extends Phaser.Scene {
     }
 
     showLoseOverlay() {
-        const cx = GAME_WIDTH / 2;
-        const cy = GAME_HEIGHT / 2;
+        const cx = this.scale.width / 2;
+        const cy = this.scale.height / 2;
 
         // Full-screen semi-transparent overlay
         const bg = this.add.graphics().setDepth(60);
         bg.fillStyle(0x06101e, 0.55);
-        bg.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+        bg.fillRect(0, 0, this.scale.width, this.scale.height);
 
         // Panel — centred
         const panelW = 440;
