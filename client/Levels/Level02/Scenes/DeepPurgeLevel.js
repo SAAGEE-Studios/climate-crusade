@@ -321,12 +321,12 @@ export class DeepPurgeLevel extends Phaser.Scene {
         panel.fillStyle(0x000000, 0.45);
         panel.fillRoundedRect(10, 10, 240, 80, 10);
 
-        const badge = this.add.graphics().setDepth(50);
-        badge.fillStyle(0x1565c0, 0.9);
-        badge.fillRoundedRect(GAME_WIDTH - 180, 10, 170, 50, 8);
-        this.add.text(GAME_WIDTH - 95, 35, " SDG 13 · Climate Action",  {
-            fontFamily: "monospace", fontSize: "13px", color: "#ffffff",
-        }).setOrigin(0.5).setDepth(51);
+        // const badge = this.add.graphics().setDepth(50);
+        // badge.fillStyle(0x1565c0, 0.9);
+        // badge.fillRoundedRect(GAME_WIDTH - 180, 10, 170, 50, 8);
+        // this.add.text(GAME_WIDTH - 95, 35, " SDG 13 · Climate Action",  {
+        //     fontFamily: "monospace", fontSize: "13px", color: "#ffffff",
+        // }).setOrigin(0.5).setDepth(51);
 
         // this.add.text(20, 18, "SCORE", {
         //     fontFamily: "monospace", fontSize: "10px", color: "#4ecdc4",
