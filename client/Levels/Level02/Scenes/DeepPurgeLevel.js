@@ -587,7 +587,7 @@ export class DeepPurgeLevel extends Phaser.Scene {
             const p = this.add.graphics().setDepth(65);
             p.fillStyle(Phaser.Math.RND.pick(colors), 0.9);
             p.fillCircle(0, 0, Phaser.Math.Between(3, 7));
-            p.setPosition(Phaser.Math.Between(0, GAME_WIDTH), Phaser.Math.Between(-50, 0));
+            p.setPosition(Phaser.Math.Between(0, this.scale.width), Phaser.Math.Between(-50, 0));
             this.tweens.add({
                 targets: p, y: 700,
                 x: `+=${Phaser.Math.Between(-80, 80)}`,
