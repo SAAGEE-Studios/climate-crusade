@@ -56,7 +56,7 @@ export class SunkenWellsLevel extends Phaser.Scene {
     
     this.load.image(
       "waterBottom",
-      "./client/Levels/Level03/Assets/water.png"
+      "./client/Levels/Level03/Assets/water_cropped.png"
     );
 
     this.makeRectTexture("player", 30, 35, 0xffffff);
@@ -70,7 +70,7 @@ export class SunkenWellsLevel extends Phaser.Scene {
     this.WIND_WARNING_MS = 1000;
     this.WIND_DAMAGE = 15;
     this.TRAP_DAMAGE = 10;
-    this.WIND_VISIBLE_MS = 600;
+    this.WIND_VISIBLE_MS = 1000;
     this.WIND_FADE_MS = 1000;
 
     this.initLayout();
@@ -88,22 +88,14 @@ export class SunkenWellsLevel extends Phaser.Scene {
     //GRID BUILD
     this.buildGrid();
 
-    this.waterSectionHeight = this.TILE * 2;
-    this.water = this.add.image(
-      this.gridOffsetX + this.worldW / 2,
-      this.gridBottomY + this.waterSectionHeight / 2,
-      "waterBottom"
-    ).setOrigin(0.5).setDepth(-5);
+    //ADD WATER AT BOTTOM OF GRID
+    this.initBottomWater();
 
-    this.water.setDisplaySize(this.worldW * 1.5, this.waterSectionHeight * 5);
-
-     
     //physics + render
     this.blocksGroup = this.physics.add.staticGroup();
     this.pickupsGroup = this.physics.add.staticGroup();
     this.renderAllTiles();
 
-    
     //player ang physics
     this.spawnPlayer();
     this.initPhysics();
@@ -151,6 +143,7 @@ export class SunkenWellsLevel extends Phaser.Scene {
 
     //level flags
     this.ended = false;
+    this.isWin = undefined;
     this.isPausedMenuOpen = false;
     this.oxygenActive = false;
     this.endOverlayShown = false;
@@ -182,6 +175,7 @@ export class SunkenWellsLevel extends Phaser.Scene {
     // Row hazard: wind/sand slide
     this.windEveryMs = Math.random() * (5000) + 10000;
     this.lastWindAt = this.time.now + Phaser.Math.Between(0, 3000);
+    this.activeWindRows = new Set();
 
     //GRID DETAILS
     this.TILE_EMPTY = 0; 
@@ -206,6 +200,17 @@ export class SunkenWellsLevel extends Phaser.Scene {
     this.scatterTiles(this.TILE_DRILL, 4, 10);
   }
 
+  initBottomWater(){
+    this.waterSectionHeight = this.TILE * 2;
+
+    this.water = this.add.image(
+      this.gridOffsetX + this.worldW / 2,
+      this.gridBottomY + this.waterSectionHeight / 2 + 20,
+      "waterBottom"
+    ).setOrigin(0.5).setDepth(-5);
+    this.water.setDisplaySize(this.scale.width, this.waterSectionHeight );
+  }
+
   spawnPlayer(){
     const spawnC = Math.floor(this.COLS / 2);
     const spawnY = Math.max(this.TILE / 2, this.gridOffsetY - this.TILE * 0.6);
@@ -213,6 +218,7 @@ export class SunkenWellsLevel extends Phaser.Scene {
     
     this.player = this.physics.add.sprite(spawnX, spawnY, "player");
     this.player.setCollideWorldBounds(true);
+    this.player.body.setSize(this.player.width - 6, this.player.height - 2);
   }
 
   initPhysics(){
@@ -384,6 +390,16 @@ export class SunkenWellsLevel extends Phaser.Scene {
     // Movement
     this.handleMovement();
 
+    if (this.activeWindRows.size > 0) {
+      for (const row of this.activeWindRows) {
+        if (this.isPlayerTouchingRow(row)) {
+          this.activeWindRows.delete(row);
+          this.takeDamage(this.WIND_DAMAGE);
+          break;
+        }
+      }
+    }
+
     if (Phaser.Input.Keyboard.JustDown(this.keys.DIG)) {
       this.tryDig(time);
     }
@@ -553,10 +569,9 @@ export class SunkenWellsLevel extends Phaser.Scene {
       repeat: 5   // ~1.5 seconds total
     });
 
-    // 2) After 1.5 seconds, apply damage + flash
+    // 2) After 1.5 seconds, apply damage + sandslide visual asset
     this.time.delayedCall(this.WIND_WARNING_MS, () => {
       if (!warningBand.active) return;
-
       warningBand.destroy();
 
       // DAMAGE BAND using imported asset
@@ -569,35 +584,31 @@ export class SunkenWellsLevel extends Phaser.Scene {
       damageBand.body.allowGravity = false;
       damageBand.body.setSize(this.worldW, this.TILE, true);
 
-      // damage on contact
-      let hasDamagedPlayer = false;
-
-      const overlap = this.physics.add.overlap(
-        this.player,
-        damageBand,
-        () => {
-          if (hasDamagedPlayer) return;
-          hasDamagedPlayer = true;
-          this.takeDamage(this.WIND_DAMAGE);
-        }
-      );
+      this.activeWindRows.add(windRow);
 
       // fade out damaging band
       this.time.delayedCall(this.WIND_VISIBLE_MS, () => {
+        this.activeWindRows.delete(windRow);
 
         this.tweens.add({
           targets: damageBand,
           alpha: 0,
           duration: this.WIND_FADE_MS,
           ease: "Sine.easeOut",
-          onComplete: () => {
-            overlap.destroy();
-            damageBand.destroy();
-          }
+          onComplete: () => damageBand.destroy()
         });
-
       });
     });
+  }
+
+  isPlayerTouchingRow(row) {
+    const rowTop = this.gridToWorldY(row) - this.TILE / 2;
+    const rowBottom = rowTop + this.TILE;
+
+    const playerTop = this.player.body.y;
+    const playerBottom = this.player.body.y + this.player.body.height;
+
+    return playerBottom > rowTop && playerTop < rowBottom;
   }
 
   setTile(r, c, newType) {
@@ -661,22 +672,22 @@ export class SunkenWellsLevel extends Phaser.Scene {
 
   endAsWin() {
     if (this.endOverlayShown) return;
-
+    this.isWin = true;
     this.ended = true;
     this.physics.pause();
     this.player.setVelocity(0, 0);
 
-    this.showEndOverlay(true);
+    this.showEndOverlay(this.isWin);
   }
 
   endAsLose() {
     if (this.endOverlayShown) return;
-
+    this.isWin = false;
     this.ended = true;
     this.physics.pause();
     this.player.setVelocity(0, 0);
 
-    this.showEndOverlay(false);
+    this.showEndOverlay(this.isWin);
   }
 
   renderAllTiles() {
@@ -847,7 +858,7 @@ export class SunkenWellsLevel extends Phaser.Scene {
         this.scale.height,
         0x000000,
         0.6
-    ).setDepth(30);
+    ).setDepth(30).setScrollFactor(0);
 
     // Panel box
     this.pauseBox = this.add.rectangle(
@@ -857,7 +868,7 @@ export class SunkenWellsLevel extends Phaser.Scene {
         150,
         0x111111,
         0.6
-    ).setDepth(31).setRounded(20);
+    ).setDepth(31).setRounded(20).setScrollFactor(0);
 
     // Text
     this.pauseText = this.add.text(
@@ -868,7 +879,7 @@ export class SunkenWellsLevel extends Phaser.Scene {
             fontSize: '32px',
             color: '#ffffff'
         }
-    ).setOrigin(0.5).setDepth(32);
+    ).setOrigin(0.5).setDepth(32).setScrollFactor(0);
 
     this.pauseSubText = this.add.text(
         this.scale.width / 2,
@@ -879,7 +890,7 @@ export class SunkenWellsLevel extends Phaser.Scene {
             color: '#cccccc',
             align: 'center'
         }
-    ).setOrigin(0.5).setDepth(32);
+    ).setOrigin(0.5).setDepth(32).setScrollFactor(0);
   } 
 
   closePauseMenu() {
@@ -898,6 +909,7 @@ export class SunkenWellsLevel extends Phaser.Scene {
   //LEVEL SAVING FUNCTIONALITY
   async saveLevelResult() {
     if (this.resultSaved) return;
+    if (!this.isWin) return;
 
     try {
       //backend save if user logged in
