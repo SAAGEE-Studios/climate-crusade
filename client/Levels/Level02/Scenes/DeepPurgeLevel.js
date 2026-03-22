@@ -61,7 +61,7 @@ export class DeepPurgeLevel extends Phaser.Scene {
         this.load.image('Level02Background', './client/Levels/Level02/Assets/Backgrounds/Background_Level_2.png');
         this.load.image('starCollect', './client/Levels/Level02/Assets/Items/Star_to_collect.png');
         this.load.image('boat', './client/Levels/Level02/Assets/Items/Boat.png');
-        this.load.image('hook', './client/Levels/Level02/Assets/Items/Hook.png');
+        this.load.image('hook', './client/Levels/Level02/Assets/Items/Hook-t.png');
 
         // Load Trash Assets
         this.load.image('bottle', './client/Levels/Level02/Assets/Items/Plastic_Bottle.webp');
@@ -80,7 +80,7 @@ export class DeepPurgeLevel extends Phaser.Scene {
         this.createHUD();
         this.createInputs();
         this.createTimer();
-        this.showInstructions();
+        
         
         const hint = this.add.text(this.scale.width / 2, this.scale.height / 2,
             "SPACE or TAP to cast hook", {
@@ -240,7 +240,7 @@ export class DeepPurgeLevel extends Phaser.Scene {
 
          // Keep any hooked object attached just below the hook tip
         if (this.hookedObject) {
-            this.hookedObject.setPosition(hp.x, hp.y + 22);
+            this.hookedObject.setPosition(hp.x, hp.y + 50);
         }
     }
 
@@ -708,107 +708,6 @@ export class DeepPurgeLevel extends Phaser.Scene {
         this.scene.start("LevelSelectScene");
     }
 
-    showInstructions() {
-        // 1. Pause the game mechanics and timer
-        this.paused = true;
-
-        // 2. Create a container to hold all UI elements so they can be destroyed together
-        const uiContainer = this.add.container(0, 0).setDepth(100);
-        const cx = this.scale.width / 2;
-        const cy = this.scale.height / 2;
-
-        // 3. --- NEW: Add the Sea Background Image to the Instruction Screen ---
-        // Make sure 'Level02Background' is loaded as a .jpg in your preload()
-        const bgImage = this.add.image(cx, cy, 'Level02Background').setOrigin(0.5, 0.5);
-        const scaleX = this.scale.width / bgImage.width;
-        const scaleY = this.scale.height / bgImage.height;
-        bgImage.setScale(Math.max(scaleX, scaleY));
-        uiContainer.add(bgImage);
-
-        // Add a very light dark overlay over the image just so the instruction panel pops out
-        const overlay = this.add.graphics();
-        overlay.fillStyle(0x000000, 0.3); 
-        overlay.fillRect(0, 0, this.scale.width, this.scale.height);
-        uiContainer.add(overlay);
-
-        // 4. Main Instruction Card Panel
-        const panelW = 740;
-        const panelH = 460;
-        const panelX = cx - panelW / 2;
-        const panelY = cy - panelH / 2;
-
-        const panel = this.add.graphics();
-        panel.fillStyle(0xdcebe6, 0.95); // Light ocean-tinted background
-        panel.fillRoundedRect(panelX, panelY, panelW, panelH, 15);
-        panel.lineStyle(4, 0x4a7c59, 1);
-        panel.strokeRoundedRect(panelX, panelY, panelW, panelH, 15);
-        uiContainer.add(panel);
-
-        const textStyle = {
-            fontFamily: '"Aptos Body", "Aptos", sans-serif',
-            fontSize: '14px',
-            color: '#1a3a2a',
-            fontStyle: 'bold',
-            align: 'center',
-            wordWrap: { width: 200 }
-        };
-
-        // --- GRID LAYOUT ---
-
-        // ITEM 1: Boat / Hook
-        const imgBoat = this.add.image(cx - 240, panelY + 110, 'boat').setDisplaySize(110, 70).setOrigin(0.5);
-        const txtBoat = this.add.text(cx - 240, panelY + 160, "THE SPACEBAR IS USED TO RELEASE THE HOOK INTO THE SEA", textStyle).setOrigin(0.5, 0);
-        uiContainer.add([imgBoat, txtBoat]);
-
-        // ITEM 2: Trash (Win Condition)
-        const imgBag = this.add.image(cx - 40, panelY + 110, 'bag').setDisplaySize(70, 70).setOrigin(0.5);
-        const imgBottle = this.add.image(cx + 40, panelY + 110, 'bottle').setDisplaySize(40, 70).setOrigin(0.5);
-        const txtTrash = this.add.text(cx, panelY + 160, "REMOVE ALL THE TRASH IN THE SEA TO WIN THE LEVEL", textStyle).setOrigin(0.5, 0);
-        uiContainer.add([imgBag, imgBottle, txtTrash]);
-
-        // ITEM 3: Stars
-        const imgStar = this.add.image(cx + 240, panelY + 110, 'starCollect').setDisplaySize(80, 80).setOrigin(0.5);
-        const txtStar = this.add.text(cx + 240, panelY + 160, "COLLECT ALL STARS TO FULLY RESTORE THE ENVIRONMENT", textStyle).setOrigin(0.5, 0);
-        uiContainer.add([imgStar, txtStar]);
-
-        // ITEM 4: Time Limit
-        const txtTime = this.add.text(cx, panelY + 310, "THERE IS A TIME LIMIT OF 2 MINUTES", {
-            fontFamily: '"Aptos Body", "Aptos", sans-serif', fontSize: '18px', color: '#1a3a2a', fontStyle: 'bold', align: 'center'
-        }).setOrigin(0.5);
-        uiContainer.add(txtTime);
-
-        // ITEM 5: Escape key
-        const txtEsc = this.add.text(cx, panelY + 360, "PRESS ESCAPE TO LEAVE THE LEVEL", {
-            fontFamily: '"Aptos Body", "Aptos", sans-serif', fontSize: '14px', color: '#000000', fontStyle: 'bold', align: 'center'
-        }).setOrigin(0.5);
-        uiContainer.add(txtEsc);
-
-        // --- START BUTTON ---
-        const startText = this.add.text(cx, panelY + panelH - 40, "PRESS SPACE OR CLICK TO START", {
-            fontFamily: '"Aptos Body", "Aptos", sans-serif', fontSize: '18px', color: '#004d40', fontStyle: 'bold',
-            backgroundColor: '#a3d2ca', padding: { x: 20, y: 10 }
-        }).setOrigin(0.5).setInteractive();
-        uiContainer.add(startText);
-
-        // Pulsing effect for the button
-        this.tweens.add({
-            targets: startText, scaleX: 1.05, scaleY: 1.05, yoyo: true, repeat: -1, duration: 800, ease: 'Sine.easeInOut'
-        });
-
-        // --- TRANSITION LOGIC ---
-        const startGame = () => {
-            this.input.keyboard.off('keydown-SPACE', startGame);
-            
-            // This destroys the container, which removes the card AND the background image
-            uiContainer.destroy();
-            
-            this.paused = false;
-        };
-
-        this.input.keyboard.once('keydown-SPACE', startGame);
-        startText.once('pointerdown', startGame);
-    }
-    
       
       
 }
