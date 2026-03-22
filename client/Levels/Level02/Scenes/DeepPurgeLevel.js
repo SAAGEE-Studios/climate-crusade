@@ -30,7 +30,7 @@ export const GAME_DURATION = 120;
 export const HOOK_EXTEND_SPEED = 4;
 export const MAX_ROPE_LENGTH = 720;
 export const HOOK_SWING = 75;
-export const TRASH_SPAWNED = 4;
+export const TRASH_SPAWNED = 6;
 
 // =========================================================================
 // MAIN GAME SCENE 
