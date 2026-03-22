@@ -11,7 +11,10 @@ export class Level02EntryScene extends Phaser.Scene {
         // Load the static background image
         this.load.image('Level2Background', './client/Levels/Level02/Assets/Backgrounds/Background_Level_2.png');
         this.load.image('Instructions',
-                         './client/Levels/Level02/Cutscenes/Instructions_Card.png');
+                         './client/Levels/Level02/Cutscenes/Instruction_Card.png');
+        this.load.image('Title',
+                         './client/Levels/Level02/Assets/Items/Title.jpg');
+
         
         // FIX 1: Use the modern 2-argument load.video() signature.
         // The old 5-argument form (loadeddata, noAudio, crossOrigin) was deprecated
@@ -35,7 +38,7 @@ export class Level02EntryScene extends Phaser.Scene {
         this.bgImage = this.add.image(
             this.scale.width / 2,
             this.scale.height / 2,
-            'Level2Background'
+            'Title'
         ).setOrigin(0.5);
 
         this.bgImage.setDisplaySize(this.scale.width, this.scale.height);
@@ -183,25 +186,6 @@ export class Level02EntryScene extends Phaser.Scene {
         instructionsImage.setScale(scale);
         
         
-        // Add the prompt text near the bottom of the screen
-        const startText = this.add.text(centerX, this.cameras.main.height - 60, 'Tap or Press Space to start', {
-            fontFamily: 'Arial',
-            fontSize: '32px',
-            color: '#ffffff',
-            backgroundColor: '#000000aa', // Semi-transparent black background for readability
-            padding: { x: 20, y: 10 },
-            stroke: '#000000',
-            strokeThickness: 3
-        }).setOrigin(0.5);
-
-        // Optional: Add a simple pulsing/blinking animation to the text
-        this.tweens.add({
-            targets: startText,
-            alpha: 0.4,
-            yoyo: true,
-            repeat: -1,
-            duration: 800
-        });
 
         // 1. Listen for the Spacebar key
         this.input.keyboard.once('keydown-SPACE', () => {
