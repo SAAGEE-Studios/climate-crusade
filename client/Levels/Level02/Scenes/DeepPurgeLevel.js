@@ -61,6 +61,7 @@ export class DeepPurgeLevel extends Phaser.Scene {
         this.load.image('Level02Background', './client/Levels/Level02/Assets/Backgrounds/Background_Level_2.png');
         this.load.image('starCollect', './client/Levels/Level02/Assets/Items/Star_to_collect.png');
         this.load.image('boat', './client/Levels/Level02/Assets/Items/Boat.png');
+        this.load.image('hook', './client/Levels/Level02/Assets/Items/Hook.png');
 
         // Load Trash Assets
         this.load.image('bottle', './client/Levels/Level02/Assets/Items/Plastic_Bottle.webp');
@@ -193,7 +194,13 @@ export class DeepPurgeLevel extends Phaser.Scene {
     // ── Hook / Rope ─────────────────────────────────────────────────────────
     createHook() {
         this.ropeGraphics = this.add.graphics().setDepth(12);
-        this.hookGraphics = this.add.graphics().setDepth(13);
+ 
+        // Image-based hook — swap Hook.png in Assets/Items to change the look
+        this.hookSprite = this.add.image(0, 0, 'hook')
+            .setDisplaySize(40, 60)
+            .setOrigin(0.5, 0)
+            .setDepth(13)
+            .setVisible(false);
     }
 
     getHookWorldPos() {
@@ -206,7 +213,7 @@ export class DeepPurgeLevel extends Phaser.Scene {
 
     drawRopeAndHook() {
         this.ropeGraphics.clear();
-        this.hookGraphics.clear();
+        
 
         const hp = this.getHookWorldPos();
 
@@ -223,16 +230,14 @@ export class DeepPurgeLevel extends Phaser.Scene {
         }
         this.ropeGraphics.strokePath();
 
-        this.hookGraphics.lineStyle(3, 0xaaaaaa, 1);
-        this.hookGraphics.fillStyle(0xcccccc, 1);
-        this.hookGraphics.fillCircle(hp.x, hp.y, 6);
-        this.hookGraphics.strokeCircle(hp.x, hp.y, 6);
-        this.hookGraphics.beginPath();
-        this.hookGraphics.moveTo(hp.x, hp.y + 6);
-        this.hookGraphics.lineTo(hp.x, hp.y + 14);
-        this.hookGraphics.lineTo(hp.x + 8, hp.y + 18);
-        this.hookGraphics.strokePath();
+        // Position & rotate the hook sprite to follow the rope direction
+        const rad = Phaser.Math.DegToRad(this.hookAngle + 90);
+        this.hookSprite
+            .setPosition(hp.x, hp.y)
+            .setRotation(rad - Math.PI / 2)
+            .setVisible(true);
 
+         // Keep any hooked object attached just below the hook tip
         if (this.hookedObject) {
             this.hookedObject.setPosition(hp.x, hp.y + 22);
         }
@@ -287,7 +292,7 @@ export class DeepPurgeLevel extends Phaser.Scene {
     for (const item of allItems) {
         if (!item.active) continue;
 
-        if (Phaser.Math.Distance.Between(hp.x, hp.y, item.x, item.y) < 28) {
+        if (Phaser.Math.Distance.Between(hp.x, hp.y, item.x, item.y) < 38) {
             this.hookedObject = item;
             item.active = false;
             this.hookReturning = true;
@@ -377,9 +382,13 @@ export class DeepPurgeLevel extends Phaser.Scene {
 
     // ── Inputs ───────────────────────────────────────────────────────────────
     createInputs() {
+        this.input.keyboard.off("keydown-SPACE", this.launchHook, this);
+        this.input.keyboard.off("keydown-ESC", this.showQuitConfirm, this);
+        this.input.off("pointerdown", this.launchHook, this);
+
         this.input.keyboard.on("keydown-SPACE", this.launchHook, this);
         this.input.on("pointerdown", this.launchHook, this);
-        this.input.keyboard.on("keydown-ESC", this.quitGame, this);
+        this.input.keyboard.on("keydown-ESC", this.showQuitConfirm, this);  
     }
 
     // ── Timer ────────────────────────────────────────────────────────────────
@@ -602,8 +611,102 @@ export class DeepPurgeLevel extends Phaser.Scene {
         }
     }
 
+    // ── Quit Confirmation Dialog ─────────────────────────────────────────────
+    showQuitConfirm() {
+        // Don't open a second dialog if one is already showing
+        if (this._quitDialog) return;
+ 
+        this.paused = true;
+ 
+        const cx = this.scale.width / 2;
+        const cy = this.scale.height / 2;
+        const panelW = 340;
+        const panelH = 180;
+        const panelX = cx - panelW / 2;
+        const panelY = cy - panelH / 2;
+ 
+        // Dim overlay
+        const overlay = this.add.graphics().setDepth(70);
+        overlay.fillStyle(0x000000, 0.5);
+        overlay.fillRect(0, 0, this.scale.width, this.scale.height);
+ 
+        // Panel
+        const panel = this.add.graphics().setDepth(71);
+        panel.fillStyle(0x020c18, 0.92);
+        panel.fillRoundedRect(panelX, panelY, panelW, panelH, 14);
+        panel.lineStyle(2, 0x4ecdc4, 0.8);
+        panel.strokeRoundedRect(panelX, panelY, panelW, panelH, 14);
+ 
+        // Text
+        const title = this.add.text(cx, panelY + 42, "Quit Level?", {
+            fontFamily: "monospace", fontSize: "22px",
+            color: "#ffffff", fontStyle: "bold",
+        }).setOrigin(0.5).setDepth(72);
+ 
+        const subtitle = this.add.text(cx, panelY + 78, "Your progress will be lost.", {
+            fontFamily: "monospace", fontSize: "13px", color: "#aaddff",
+        }).setOrigin(0.5).setDepth(72);
+ 
+        // ── Cancel button ──
+        const cancelW = 120, btnH = 38;
+        const cancelX = cx - cancelW - 10;
+        const btnY = panelY + panelH - 58;
+ 
+        const cancelBtn = this.add.graphics().setDepth(72);
+        const drawCancel = (color) => {
+            cancelBtn.clear();
+            cancelBtn.fillStyle(color, 1);
+            cancelBtn.fillRoundedRect(cancelX, btnY, cancelW, btnH, 8);
+        };
+        drawCancel(0x334466);
+ 
+        const cancelLabel = this.add.text(cancelX + cancelW / 2, btnY + btnH / 2, "CANCEL", {
+            fontFamily: "monospace", fontSize: "14px", color: "#ffffff", fontStyle: "bold",
+        }).setOrigin(0.5).setDepth(73);
+ 
+        cancelBtn.setInteractive(new Phaser.Geom.Rectangle(cancelX, btnY, cancelW, btnH), Phaser.Geom.Rectangle.Contains);
+        cancelBtn.on("pointerover",  () => drawCancel(0x4a6080));
+        cancelBtn.on("pointerout",   () => drawCancel(0x334466));
+        cancelBtn.on("pointerdown",  () => this._closeQuitConfirm());
+ 
+        // ── Quit button ──
+        const quitW = 120;
+        const quitX = cx + 10;
+ 
+        const quitBtn = this.add.graphics().setDepth(72);
+        const drawQuit = (color) => {
+            quitBtn.clear();
+            quitBtn.fillStyle(color, 1);
+            quitBtn.fillRoundedRect(quitX, btnY, quitW, btnH, 8);
+        };
+        drawQuit(0xff4444);
+ 
+        const quitLabel = this.add.text(quitX + quitW / 2, btnY + btnH / 2, "QUIT", {
+            fontFamily: "monospace", fontSize: "14px", color: "#ffffff", fontStyle: "bold",
+        }).setOrigin(0.5).setDepth(73);
+ 
+        quitBtn.setInteractive(new Phaser.Geom.Rectangle(quitX, btnY, quitW, btnH), Phaser.Geom.Rectangle.Contains);
+        quitBtn.on("pointerover",  () => drawQuit(0xff7777));
+        quitBtn.on("pointerout",   () => drawQuit(0xff4444));
+        quitBtn.on("pointerdown",  () => this.quitGame());
+ 
+        // Store all dialog objects so we can destroy them on cancel
+        this._quitDialog = [overlay, panel, title, subtitle, cancelBtn, cancelLabel, quitBtn, quitLabel];
+    }
+
+    
+    _closeQuitConfirm() {
+        if (!this._quitDialog) return;
+        this._quitDialog.forEach(obj => obj.destroy());
+        this._quitDialog = null;
+        this.paused = false;
+    }
+ 
     quitGame() {
         if (this.timerEvent) this.timerEvent.remove();
         this.scene.start("LevelSelectScene");
     }
+    
+      
+      
 }
