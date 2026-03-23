@@ -19,6 +19,7 @@ export class LoginScene extends Phaser.Scene {
         bg.setDisplaySize(this.scale.width, this.scale.height);
         this.events.on('shutdown', this.shutdown, this);
 
+
         if (!GameState.bgMusic) {
             GameState.bgMusic = this.sound.add('calmAdventureMusic', {
                 volume: 0.4,

@@ -32,6 +32,7 @@ export class FirstTimeCutsceneScene extends Phaser.Scene {
 
         video.setDisplaySize(this.scale.width / 7, this.scale.height / 4);
         video.setMute(false);
+        video.setLoop(false);
         video.play();
 
         if (GameState.bgMusic) {

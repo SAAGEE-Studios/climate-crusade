@@ -51,7 +51,7 @@ export class SignupScene extends Phaser.Scene {
 
             this.signupLocked = false;
         }
-    }
+    } 
 
     async handleSignup() {
         const status = document.getElementById('signup-status');
@@ -84,6 +84,9 @@ export class SignupScene extends Phaser.Scene {
         }
 
         try {
+            status.textContent = "Signing  up.....";
+            status.style.color = 'green';
+
             await signup({
                 username,
                 email,

@@ -14,6 +14,7 @@ export class LevelSelectScene extends Phaser.Scene {
     preload() {
         this.load.image('backgroundLevelSelectScene', './client/Shared/LevelSelectScene/Background.png');
         this.load.image('level_1_info_panel', './client/Shared/LevelSelectScene/Level_1_Info_Panel.png');
+        this.load.audio('levelSelectTheme', './client/Shared/Audio/Level_Select_Soundtrack.mp3');
     }
 
     create() {
@@ -22,6 +23,14 @@ export class LevelSelectScene extends Phaser.Scene {
 
         this.cameras.main.fadeIn(200);
         this.events.on('shutdown', this.shutdown, this);
+
+        if (!GameState.bgMusic) {
+            GameState.bgMusic = this.sound.add('levelSelectTheme', {
+                volume: 0.4,
+                loop: true
+            });
+            GameState.bgMusic.play();
+        }
 
         const bg = this.add.image(0, 0, 'backgroundLevelSelectScene').setOrigin(0, 0);
         bg.setDisplaySize(this.scale.width, this.scale.height);
@@ -180,6 +189,12 @@ export class LevelSelectScene extends Phaser.Scene {
 
     logout() {
         this.cameras.main.fadeOut(200);
+
+        if (GameState.bgMusic) {
+            console.log("Stopped");
+            GameState.bgMusic.stop();
+            GameState.bgMusic = null;
+        }
 
         this.cameras.main.once('camerafadeoutcomplete', () => {
             GameState.reset();
@@ -389,5 +404,6 @@ export class LevelSelectScene extends Phaser.Scene {
         if (this.deleteAccountButton) {
             this.deleteAccountButton.style.display = 'none';
         }
+
     }
 }
