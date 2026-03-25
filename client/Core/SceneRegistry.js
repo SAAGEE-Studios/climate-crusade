@@ -20,6 +20,18 @@ import { Level04EntryScene } from '../Levels/Level04/EntryScene.js';
 import { Level04CutsceneScene } from '../Levels/Level04/Cutscenes/CutsceneScene.js';
 import { SpaceJunkLevel } from '../Levels/Level04/Scenes/SpaceJunkLevel.js';
 
+/**
+ * SCENES
+ * -------
+ * Centralized list of all Phaser scenes registered in the game.
+ *
+ * This array is passed into the Phaser configuration to ensure
+ * all scenes are initialized and available for navigation.
+ * 
+ * Scenes are organized by feature area and level for clarity
+ * and maintainability.
+ */
+
 export const SCENES = [
   IntroScene,
   LoginScene,

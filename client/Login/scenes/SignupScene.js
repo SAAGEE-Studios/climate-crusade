@@ -2,6 +2,16 @@ import { GameFlowManager } from '../../Core/GameFlowManager.js';
 import { InputValidation } from '../../Core/InputValidation.js';
 import { signup } from '../../Core/api.js';
 
+/**
+ * SignupScene
+ * ------------
+ * Handles new user registration and account creation.
+ *
+ * This scene validates user input, communicates with the backend
+ * signup endpoint, and transitions back to the login screen
+ * upon successful registration.
+ */
+
 export class SignupScene extends Phaser.Scene {
     constructor() {
         super('SignupScene');
@@ -18,6 +28,8 @@ export class SignupScene extends Phaser.Scene {
 
     create() {
         this.cameras.main.fadeIn(200);
+
+        // Prevents multiple rapid signup submissions
         this.signupLocked = false;
 
         const bg = this.add.image(0, 0, 'backgroundSignupScene').setOrigin(0, 0);
@@ -52,6 +64,11 @@ export class SignupScene extends Phaser.Scene {
             this.signupLocked = false;
         }
     } 
+
+    /**
+     * Validates user input fields, sends account creation request
+     * to the backend, and provides UI feedback based on the result.
+     */
 
     async handleSignup() {
         const status = document.getElementById('signup-status');
@@ -116,6 +133,10 @@ export class SignupScene extends Phaser.Scene {
     update() {
     }
 
+    /**
+     * Hides DOM-based signup UI elements when the scene exits.
+     */
+    
     shutdown() {
         if (this.signupUI) {
             this.signupUI.style.display = 'none';

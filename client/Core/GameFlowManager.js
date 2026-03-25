@@ -1,3 +1,17 @@
+/**
+ * GameFlowManager
+ * ----------------
+ * Centralized scene navigation controller for the game.
+ *
+ * This module abstracts scene transitions and provides a
+ * single point of control for moving between major game states
+ * such as login, signup, level select, cutscenes, and gameplay scenes.
+ *
+ * Keeping transitions centralized improves maintainability
+ * and prevents scene-switching logic from being scattered
+ * across multiple files.
+ */
+
 export const GameFlowManager = {
     goToLogin(scene){
         scene.scene.start('LoginScene');

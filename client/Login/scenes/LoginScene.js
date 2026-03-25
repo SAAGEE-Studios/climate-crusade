@@ -2,6 +2,16 @@ import { GameFlowManager } from '../../Core/GameFlowManager.js';
 import { GameState } from '../../Core/GameState.js';
 import { login } from '../../Core/api.js';
 
+/**
+ * LoginScene
+ * -----------
+ * Handles user authentication and entry into the game.
+ *
+ * This scene manages login form interaction, background music
+ * initialization, and navigation to either the first-time cutscene
+ * or the level selection screen upon successful authentication.
+ */
+
 export class LoginScene extends Phaser.Scene {
 
     constructor() {
@@ -44,6 +54,7 @@ export class LoginScene extends Phaser.Scene {
             });
         };
 
+        // Prevents multiple rapid login submissions
         let loginLocked = false;
 
         loginButton.onclick = async () => {
@@ -55,6 +66,11 @@ export class LoginScene extends Phaser.Scene {
             loginLocked = false;
         };
     }
+
+    /**
+     * Validates login input, sends authentication request to the backend,
+     * updates global session state, and transitions to the appropriate scene.
+     */
 
     async handleLogin() {
         const status = document.getElementById('login-status');
@@ -98,6 +114,11 @@ export class LoginScene extends Phaser.Scene {
             setTimeout(() => status.textContent = "", 1500);
         }
     }
+
+    /**
+     * Stops background music and hides DOM-based login UI
+     * when the scene is exited.
+     */
 
     shutdown() {
         if (GameState.bgMusic) {

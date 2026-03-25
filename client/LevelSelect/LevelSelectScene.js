@@ -3,6 +3,19 @@ import { GameState } from '../Core/GameState.js';
 import { LEVELS } from '../Core/LevelRegistry.js';
 import { getProgress, deleteAccount } from '../Core/api.js';
 
+/**
+ * LevelSelectScene
+ * -----------------
+ * Handles level selection, progress visualization, and account management.
+ *
+ * This scene displays all available levels, retrieves and applies
+ * user progress from the backend, updates Earth’s health based on
+ * collected stars, and manages navigation into selected levels.
+ *
+ * It also provides session-related actions such as logout and
+ * secure account deletion through a confirmation modal.
+ */
+
 export class LevelSelectScene extends Phaser.Scene {
     constructor() {
         super('LevelSelectScene');
@@ -87,6 +100,11 @@ export class LevelSelectScene extends Phaser.Scene {
         });
     }
 
+    /**
+     * Stores the selected level ID and displays its corresponding
+     * information panel on the selection screen.
+     */
+
     handleLevelSelection(levelId) {
         this.selectedLevelId = levelId;
         this.selectionScreen.style.display = 'block';
@@ -105,6 +123,11 @@ export class LevelSelectScene extends Phaser.Scene {
             infoScreen.src = '';
         }
     }
+
+    /**
+     * Loads the selected level's configuration file and transitions
+     * to its defined entry scene.
+     */
 
     async startSelectedLevel() {
         if (!this.selectedLevelId) return;
@@ -126,10 +149,20 @@ export class LevelSelectScene extends Phaser.Scene {
 
         this.cameras.main.fadeOut(200);
 
+         if (GameState.bgMusic) {
+            GameState.bgMusic.stop();
+            GameState.bgMusic = null;
+        }
+
         this.cameras.main.once('camerafadeoutcomplete', () => {
             GameFlowManager.goToLevel(this, entryScene);
         });
     }
+
+    /**
+     * Fetches the logged-in user's saved progress from the backend
+     * and applies it to the UI.
+     */
 
     async loadProgress() {
         try {
@@ -139,6 +172,11 @@ export class LevelSelectScene extends Phaser.Scene {
             console.error("Progress fetch error:", err.message);
         }
     }
+
+    /**
+     * Maps saved progress to level buttons and updates star visuals
+     * and overall Earth health.
+     */
 
     applyProgressToUI(progressArray) {
         const progressMap = {}
@@ -173,6 +211,11 @@ export class LevelSelectScene extends Phaser.Scene {
         this.updateEarthHealth(totalStars);
     }
 
+    /**
+     * Calculates and updates Earth’s health percentage based on
+     * total stars collected across all levels.
+     */
+
     updateEarthHealth(totalStars) {
         const maxStarsPerLevel = 3;
         const maxStarsTotal = LEVELS.length * maxStarsPerLevel;
@@ -186,6 +229,11 @@ export class LevelSelectScene extends Phaser.Scene {
         barFill.style.width = `${healthPercent}%`;
         percentText.textContent = `${Math.round(healthPercent)}%`;
     }
+
+    /**
+     * Stops background music, resets session state,
+     * and returns the user to the login screen.
+     */
 
     logout() {
         this.cameras.main.fadeOut(200);
@@ -201,6 +249,11 @@ export class LevelSelectScene extends Phaser.Scene {
             GameFlowManager.goToLogin(this);
         });
     }
+
+    /**
+     * Displays a modal confirmation overlay for account deletion
+     * and temporarily disables other UI interactions.
+     */
 
     showDeleteConfirmation() {
         if (this.isDeletePopupOpen) return;
@@ -293,6 +346,11 @@ export class LevelSelectScene extends Phaser.Scene {
         });
     }
 
+    /**
+     * Displays a modal confirmation overlay for account deletion
+     * and temporarily disables other UI interactions.
+     */
+
     createDeleteButton(label, x, y, color, callback) {
 
         const depth = 502;
@@ -334,6 +392,11 @@ export class LevelSelectScene extends Phaser.Scene {
         this.deleteElements.push(button, text, hitArea);
     }
 
+    /**
+     * Closes the account deletion modal and restores
+     * normal UI interaction.
+     */
+
     closeDeletePopup() {
         this.isDeletePopupOpen = false;
 
@@ -364,6 +427,11 @@ export class LevelSelectScene extends Phaser.Scene {
         this.isModalOpen = false;
     }
 
+    /**
+     * Sends a delete account request to the backend
+     * and redirects to login upon success.
+     */
+
     async confirmDelete() {
         try {
             // For security you should prompt password,
@@ -380,6 +448,10 @@ export class LevelSelectScene extends Phaser.Scene {
         }
     }
 
+    /**
+     * Cleans up DOM visibility when the scene is shut down.
+     */
+    
     shutdown() {
         if (this.levelUI) {
             this.levelUI.style.display = 'none';

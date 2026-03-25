@@ -2,6 +2,16 @@ import { GameFlowManager } from '../../Core/GameFlowManager.js';
 import { GameState } from '../../Core/GameState.js';
 import { markFirstTimeComplete } from '../../Core/api.js';
 
+/**
+ * FirstTimeCutsceneScene
+ * -----------------------
+ * Plays the introductory cutscene shown only to first-time users.
+ *
+ * This scene handles video playback, allows the player to skip,
+ * temporarily mutes background music, and updates the backend
+ * to mark the first-time experience as completed.
+ */
+
 export class FirstTimeCutsceneScene extends Phaser.Scene {
 
     constructor() {
@@ -54,6 +64,12 @@ export class FirstTimeCutsceneScene extends Phaser.Scene {
         });
     }
 
+    /**
+     * Finalizes the cutscene by updating first-time status,
+     * restoring background music, and transitioning to
+     * the Level Select scene.
+     */
+
     async finishCutscene() {
         if (this.finished) return;
         this.finished = true;
@@ -75,6 +91,10 @@ export class FirstTimeCutsceneScene extends Phaser.Scene {
             GameFlowManager.goToLevelSelect(this);
         });
     }
+
+    /**
+     * Cleans up DOM-based UI elements when the scene shuts down.
+     */
 
     shutdown() {
         if (this.skipSceneUI) {

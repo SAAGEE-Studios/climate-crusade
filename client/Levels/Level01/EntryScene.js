@@ -1,6 +1,19 @@
 import { GameFlowManager } from '../../Core/GameFlowManager.js';
 import { GameState } from '../../Core/GameState.js';
 
+/**
+ * Level01EntryScene
+ * ------------------
+ * Entry gateway for Level 01 (Acid Downpour).
+ *
+ * This scene displays the animated title card, plays the
+ * introductory cutscene, and presents gameplay instructions
+ * before transitioning into the playable level.
+ *
+ * It supports keyboard and mobile input, skip functionality,
+ * and proper cleanup of video resources on shutdown.
+ */
+
 export class Level01EntryScene extends Phaser.Scene {
 
     constructor() {
@@ -103,6 +116,7 @@ export class Level01EntryScene extends Phaser.Scene {
 
 
     }
+    
 
     update() {
         if (Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
@@ -116,6 +130,11 @@ export class Level01EntryScene extends Phaser.Scene {
         }
     }
 
+    /**
+     * Cleans up active videos, DOM skip UI, and input listeners
+     * to prevent resource leaks when leaving the scene.
+     */
+    
     beginInstructions() {
 
         if (this.instructionsShown) return;
@@ -133,6 +152,12 @@ export class Level01EntryScene extends Phaser.Scene {
 
         this.displayInstructions();
     }
+
+    /**
+     * Stops the looping title card and plays the main level cutscene.
+     * Provides skip functionality and transitions to instructions
+     * upon completion or manual skip.
+     */
 
     playCutscene() {
 
@@ -198,6 +223,11 @@ export class Level01EntryScene extends Phaser.Scene {
         });
     }
 
+    /**
+     * Displays the level instruction overlay and waits for user input
+     * before starting the gameplay scene.
+     */
+
     displayInstructions() {
 
         // Dim background
@@ -249,6 +279,11 @@ export class Level01EntryScene extends Phaser.Scene {
             this.scene.start('AcidDownpourLevel',{});
         });
     }
+
+    /**
+     * Cleans up active videos, DOM skip UI, and input listeners
+     * to prevent resource leaks when leaving the scene.
+     */
 
     shutdown() {
         if (this.titleVideo) {

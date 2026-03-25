@@ -1,5 +1,15 @@
 import { GameFlowManager } from '../../Core/GameFlowManager.js';
 
+/**
+ * IntroScene
+ * ----------
+ * Plays the opening intro video when the game first loads.
+ *
+ * This scene handles autoplay restrictions, transitions to the
+ * login screen once the video completes, and includes a fallback
+ * timer in case video playback is blocked by the browser.
+ */
+
 export class IntroScene extends Phaser.Scene {
     constructor() {
         super('IntroScene');
@@ -34,7 +44,7 @@ export class IntroScene extends Phaser.Scene {
             GameFlowManager.goToLogin(this);
         });
 
-        // Safety fallback (in case browser blocks autoplay)
+        // Fallback transition in case autoplay fails or video does not trigger completion
         this.time.delayedCall(5000, () => {
             if (this.scene.isActive('IntroScene')) {
                 GameFlowManager.goToLogin(this);
