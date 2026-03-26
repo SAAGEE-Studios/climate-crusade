@@ -2,6 +2,18 @@ import { GameFlowManager } from '../../../Core/GameFlowManager.js';
 import { GameState } from '../../../Core/GameState.js';
 import { saveProgress } from '../../../Core/api.js';
 
+/**
+ * AcidDownpourLevel
+ * -----------------
+ * Main gameplay scene for Level 01.
+ *
+ * Handles player movement, platforming mechanics, collectibles,
+ * hazards (acid), interactive elements (buttons & levers),
+ * life management, pause/game-over logic, and level completion.
+ *
+ * Also manages star tracking and progress persistence.
+ */
+
 export class AcidDownpourLevel extends Phaser.Scene {
 
     constructor() {
@@ -21,6 +33,14 @@ export class AcidDownpourLevel extends Phaser.Scene {
         this.isGameOver = false;
         this.isPausedMenuOpen = false;
     }
+
+    /**
+     * Initializes the level state.
+     * 
+     * Handles both fresh starts and respawns by restoring player lives,
+     * collected stars, and lever states passed from a restart. This allows
+     * seamless continuation without requiring external persistence.
+     */
 
     init(data) {
         if (data?.isRespawn) {
@@ -153,6 +173,14 @@ export class AcidDownpourLevel extends Phaser.Scene {
         );
     }
 
+    /**
+     * Sets up the level environment and gameplay systems.
+     *
+     * Initializes physics, player, platforms, boundaries, collectibles,
+     * hazards, UI elements, and interactive objects (buttons and levers).
+     * Also restores state from respawn data and prepares the HUD.
+     */
+
     create() {
         console.log("LIVES IN CREATE:", this.lives);
         this.levelFinished = false;
@@ -221,6 +249,13 @@ export class AcidDownpourLevel extends Phaser.Scene {
         this.createButtons();
         this.createLevers();
     }
+
+    /**
+     * Main game loop executed every frame.
+     *
+     * Handles player input, pause menu logic, level completion checks,
+     * and interaction updates such as button activation and visual feedback.
+     */
 
     update() {
         if (Phaser.Input.Keyboard.JustDown(this.escKey)) {
@@ -471,6 +506,13 @@ export class AcidDownpourLevel extends Phaser.Scene {
         this.lastAcid.refreshBody();
     }
 
+    /**
+     * Handles player collision with acid hazards.
+     *
+     * Reduces player lives, updates the HUD, and triggers either a respawn
+     * with preserved state or a game-over sequence when lives are depleted.
+     */
+
     hitAcid(player, acid) {
         if (this.isDying) return;
         this.isDying = true;
@@ -549,6 +591,13 @@ export class AcidDownpourLevel extends Phaser.Scene {
         });
     }
 
+    /**
+     * Detects player interaction with nearby buttons and levers.
+     *
+     * When the SPACE key is pressed within proximity, the corresponding
+     * platform is toggled or a lever is activated, enabling puzzle mechanics.
+     */
+
     checkButtonActivation() {
         if (this.levelFinished || this.isGameOver) return;
         if (!Phaser.Input.Keyboard.JustDown(this.spaceKey)) return;
@@ -621,6 +670,13 @@ export class AcidDownpourLevel extends Phaser.Scene {
             }
         });
     }
+
+    /**
+     * Toggles visibility and collision of a secret platform.
+     *
+     * Activates or deactivates the specified platform with smooth animations,
+     * enabling puzzle-solving and alternate navigation paths within the level.
+     */
 
     activatePlatform(id) {
 
@@ -699,6 +755,13 @@ export class AcidDownpourLevel extends Phaser.Scene {
         });
     }
 
+    /**
+     * Toggles the state of a lever.
+     *
+     * Updates the lever's visual state and records its activation. When all
+     * levers are activated, the level completion sequence is triggered.
+     */
+
     toggleLever(lever) {
         if (!lever || !lever.scene || this.levelFinished) return;
         const id = lever.leverId;
@@ -715,6 +778,13 @@ export class AcidDownpourLevel extends Phaser.Scene {
         this.checkLevelCompletion();
     }
 
+    /**
+     * Evaluates whether all objectives have been completed.
+     *
+     * If all levers are activated, the level is marked as complete, physics
+     * is paused, player progress is saved, and the end-of-level overlay is shown.
+     */
+
     checkLevelCompletion() {
 
         const allDown = Object.values(this.leverStates).every(state => state === true);
@@ -726,6 +796,13 @@ export class AcidDownpourLevel extends Phaser.Scene {
             this.showEndOverlay();
         }
     }
+
+    /**
+     * Displays the level completion overlay.
+     *
+     * Presents performance statistics, collected stars, remaining lives,
+     * and educational tips related to acid rain prevention.
+     */
 
     showEndOverlay() {
 
@@ -876,6 +953,13 @@ export class AcidDownpourLevel extends Phaser.Scene {
         });
     }
 
+    /**
+     * Displays the game-over overlay.
+     *
+     * Shows the player's collected stars and informs them that progress will
+     * not be saved, prompting the player to exit the level.
+     */
+
     showGameOverOverlay() {
 
         this.endDim = this.add.rectangle(
@@ -985,6 +1069,13 @@ export class AcidDownpourLevel extends Phaser.Scene {
         });
     }
 
+    /**
+     * Opens the pause menu.
+     *
+     * Pauses physics and displays an overlay allowing the player to exit
+     * the level or resume gameplay.
+     */
+
     openPauseMenu() {
         this.isPausedMenuOpen = true;
         this.physics.pause();
@@ -1047,6 +1138,13 @@ export class AcidDownpourLevel extends Phaser.Scene {
 
         this.physics.resume();
     }
+
+    /**
+     * Persists player progress to the backend.
+     *
+     * Saves the number of stars collected for the level and ensures the
+     * operation executes only once per completion.
+     */
 
     async saveLevelProgress() {
         if (this.progressSaved) return;

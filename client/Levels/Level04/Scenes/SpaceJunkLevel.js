@@ -2,12 +2,30 @@ import { GameFlowManager } from '../../../Core/GameFlowManager.js';
 import { GameState } from '../../../Core/GameState.js';
 import { saveProgress } from '../../../Core/api.js';
 
+/**
+ * SpaceJunkLevel
+ * --------------
+ * Main gameplay scene for Level 04.
+ *
+ * A fast-paced space shooter where players pilot Alvin’s ship to clear
+ * orbital debris, protect satellites, and restore Earth's ozone layer.
+ * Features wave-based enemy spawning, collectible stars, HUD management,
+ * educational interludes, pause functionality, and persistent progress tracking.
+ */
+
 export class SpaceJunkLevel extends Phaser.Scene {
     constructor() {
         super('Level04_GameplayScene');
 
         this.isPausedMenuOpen = false;
     }
+
+    /**
+     * Initializes level state and configuration.
+     *
+     * Resets gameplay variables including score, health, wave progression,
+     * spawning timers, collectible tracking, and educational content.
+     */
 
     init() {
         this.score = 0;
@@ -38,6 +56,14 @@ export class SpaceJunkLevel extends Phaser.Scene {
             "By clearing space junk and developing cleaner launch technologies,\nwe can protect both astronauts and Earth's vital ozone shield."
         ];
     }
+
+    /**
+     * Sets up the gameplay environment and core systems.
+     *
+     * Initializes the player ship, background starfield, physics groups,
+     * input controls, HUD elements, and collision handlers. Begins the
+     * first wave after a short delay.
+     */
 
     create() {
         this.add.rectangle(960, 540, 1920, 1080, 0x050520).setDepth(0);
@@ -130,6 +156,14 @@ export class SpaceJunkLevel extends Phaser.Scene {
         }).setDepth(100);
     }
 
+    /**
+     * Main game loop executed every frame.
+     *
+     * Handles player movement, shooting mechanics, debris cleanup, starfield
+     * animation, health monitoring, pause menu logic, and boundary checks for
+     * off-screen objects.
+     */
+
     updateHUD() {
         this.scoreText.setText(`SCORE: ${this.score}`);
         this.waveText.setText(`WAVE ${this.currentWave} / ${this.maxWaves}`);
@@ -152,6 +186,13 @@ export class SpaceJunkLevel extends Phaser.Scene {
         }
         this.starDisplay.setText(starStr);
     }
+
+    /**
+     * Advances the game to the next wave.
+     *
+     * Displays wave announcements, updates the HUD, and initiates spawning
+     * logic. Completes the level when all waves are cleared.
+     */
 
     startNextWave() {
         this.currentWave++;
@@ -199,6 +240,13 @@ export class SpaceJunkLevel extends Phaser.Scene {
         }
     }
 
+    /**
+     * Begins debris spawning for the current wave.
+     *
+     * Spawns debris based on wave configuration, schedules collectible stars,
+     * and automatically ends the wave after its duration.
+     */
+
     startWaveSpawning() {
         const config = this.waveConfigs[this.currentWave - 1];
         this.waveActive = true;
@@ -236,6 +284,13 @@ export class SpaceJunkLevel extends Phaser.Scene {
             }
         });
     }
+
+    /**
+     * Displays an educational interlude between waves.
+     *
+     * Pauses gameplay and presents facts about space debris and ozone layer
+     * protection. Resumes the game upon player input.
+     */
 
     showEducationalFact() {
         this.isPaused = true;
@@ -344,6 +399,13 @@ export class SpaceJunkLevel extends Phaser.Scene {
         }
     }
 
+    /**
+     * Handles collision between bullets and debris.
+     *
+     * Awards points, updates statistics, generates visual effects, and
+     * removes the destroyed debris and projectile.
+     */
+
     hitDebris(bullet, debrisItem) {
         const points = debrisItem.getData('points');
         this.score += points;
@@ -393,6 +455,13 @@ export class SpaceJunkLevel extends Phaser.Scene {
         debrisItem.destroy();
         this.updateHUD();
     }
+
+    /**
+     * Handles collisions between the player ship and debris.
+     *
+     * Reduces player health, triggers damage effects, updates the HUD,
+     * and initiates the game-over sequence if health reaches zero.
+     */
 
     shipHitDebris(ship, debrisItem) {
         this.health -= 15;
@@ -463,6 +532,13 @@ export class SpaceJunkLevel extends Phaser.Scene {
 
         this.updateHUD();
     }
+
+    /**
+     * Executes the game-over sequence.
+     *
+     * Stops spawning, plays explosion effects, displays mission failure
+     * statistics, and provides options to retry or exit the level.
+     */
 
     handleGameOver() {
         this.gameOver = true;
@@ -540,6 +616,13 @@ export class SpaceJunkLevel extends Phaser.Scene {
         });
     }
 
+    /**
+     * Triggers the level completion sequence.
+     *
+     * Stops gameplay and transitions to the mission completion screen
+     * after all waves have been cleared.
+     */
+
     completeLevel() {
         this.levelComplete = true;
         if (this.spawnTimer) {
@@ -569,6 +652,14 @@ export class SpaceJunkLevel extends Phaser.Scene {
             }
         });
     }
+
+    /**
+     * Displays the mission completion overlay.
+     *
+     * Presents final statistics, collected stars, environmental education
+     * tips, and options to continue or replay the level. Progress is saved
+     * upon completion.
+     */
 
     showCompletionScreen() {
         this.ship.setVisible(false);
@@ -704,6 +795,13 @@ export class SpaceJunkLevel extends Phaser.Scene {
         });
     }
 
+    /**
+     * Saves player progress to the backend.
+     *
+     * Persists the number of stars collected for Level 04 if a user is
+     * authenticated, ensuring progress tracking across sessions.
+     */
+
     async saveGameProgress() {
         if (GameState.userId) {
             try {
@@ -806,6 +904,12 @@ export class SpaceJunkLevel extends Phaser.Scene {
         }
     }
 
+    /**
+     * Opens the pause menu overlay.
+     *
+     * Pauses physics and displays options to exit the level or resume gameplay.
+     */
+    
     openPauseMenu() {
         this.isPausedMenuOpen = true;
         this.physics.pause();
