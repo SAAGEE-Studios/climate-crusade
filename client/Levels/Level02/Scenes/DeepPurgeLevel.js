@@ -600,8 +600,8 @@ export class DeepPurgeLevel extends Phaser.Scene {
     /**
      * Displays the victory screen.
      *
-     * Shows educational text, the time remaining, animated stars based on
-     * player performance, and triggers celebration effects.
+     * Shows the time remaining, animated stars based on player performance, 
+     * educational tips about ocean conservation, and triggers celebration effects.
      */
     showWinOverlay() {
         const cx = this.scale.width / 2;
@@ -611,8 +611,8 @@ export class DeepPurgeLevel extends Phaser.Scene {
         bg.fillStyle(0x0d2a4a, 0.55);
         bg.fillRect(0, 0, this.scale.width, this.scale.height);
 
-        const panelW = 440;
-        const panelH = 360;
+        const panelW = 600; 
+        const panelH = 500; 
         const panelX = cx - panelW / 2;
         const panelY = cy - panelH / 2;
 
@@ -631,19 +631,10 @@ export class DeepPurgeLevel extends Phaser.Scene {
             fontFamily: "monospace", fontSize: "20px", color: "#aaddff",
         }).setOrigin(0.5).setDepth(62);
 
-        this.add.text(cx, panelY + 140,
-            '"Take urgent action to combat\nclimate change and its impacts"',
-            {
-                fontFamily: "monospace", fontSize: "18px",
-                color: "#88ccff", align: "center",
-                wordWrap: { width: panelW - 60 },
-            }
-        ).setOrigin(0.5).setDepth(62);
-
         for (let i = 0; i < 3; i++) {
             const g = this.add.graphics().setDepth(62);
             const filled = i < this.starsCollected;
-            drawStar(g, cx - 60 + i * 60, panelY + 215, 20,
+            drawStar(g, cx - 60 + i * 60, panelY + 150, 20,
                 filled ? 0xffe066 : 0x334466, filled ? 1 : 0.4, 0.5);
             if (filled) {
                 this.tweens.add({
@@ -656,12 +647,35 @@ export class DeepPurgeLevel extends Phaser.Scene {
 
         const m = Math.floor(this.timeLeft / 60);
         const s = this.timeLeft % 60;
-        this.add.text(cx, panelY + 265,
+        this.add.text(cx, panelY + 205,
             `Time remaining: ${m}:${s.toString().padStart(2, "0")}`, {
             fontFamily: "monospace", fontSize: "16px", color: "#aaddff",
         }).setOrigin(0.5).setDepth(62);
 
-        // Clean instruction rather than the button
+        // --- Educational Content ---
+        this.add.text(cx, panelY + 260, "How You Can Protect Life Below Water:", {
+            fontFamily: "monospace", fontSize: "20px", color: "#4ecdc4", fontStyle: "bold"
+        }).setOrigin(0.5).setDepth(62);
+
+        const tips = [
+            "Reduce single-use plastics and join local beach cleanups.",
+            "Dispose of hazardous waste properly to prevent toxic runoff.",
+            "Choose sustainable, ethically sourced seafood."
+        ];
+
+        tips.forEach((tip, index) => {
+            const tipText = this.add.text(cx, panelY + 310 + (index * 35), `• ${tip}`, {
+                fontFamily: "monospace", fontSize: "18px", color: "#cfe8b4", align: "center",
+                wordWrap: { width: panelW - 40 }
+            }).setOrigin(0.5).setDepth(62).setAlpha(0);
+
+            // Gentle fade-in
+            this.tweens.add({
+                targets: tipText, alpha: 1, duration: 400, delay: 400 + index * 300
+            });
+        });
+        // ---------------------------
+
         this.add.text(cx, panelY + panelH - 40, "Press SPACE or ESC to Exit", {
             fontFamily: "monospace", fontSize: "18px", color: "#4ecdc4", fontStyle: "bold"
         }).setOrigin(0.5).setDepth(63);
