@@ -1,12 +1,22 @@
 import { GameFlowManager } from '../../Core/GameFlowManager.js';
 
+/**
+ * Level03EntryScene
+ * ------------------
+ * Manages the pre-game sequence for Level 3 (Sunken Wells).
+ *
+ * This scene presents the level title card, plays the introductory cutscene,
+ * and displays the instructions screen before handing off to the main level.
+ * The player can skip the cutscene at any point via the HTML skip button,
+ * and can return to level select from the title card using ESC.
+ */
+
 export class Level03EntryScene extends Phaser.Scene {
   constructor() {
     super('Level03EntryScene');
   }
 
   preload() {
-    // Replace these with your real Level 3 assets
     this.load.image(
       'Level03TitleCard',
       './client/Levels/Level03/Cutscenes/Level03_TitleCard.png'
@@ -26,6 +36,11 @@ export class Level03EntryScene extends Phaser.Scene {
     );
   }
 
+  /**
+   * Initializes the title card screen with a blinking prompt.
+   * Registers pointer and keyboard listeners to advance into the cutscene,
+   * and hooks the shutdown handler to clean up on scene exit.
+   */
   create() {
     this.cutsceneStarted = false;
     this.instructionsShown = false;
@@ -72,18 +87,29 @@ export class Level03EntryScene extends Phaser.Scene {
     });
   }
 
+  /**
+   * Polls for SPACE to advance into the cutscene and ESC to return to level select.
+   * ESC is ignored once the cutscene has started to prevent accidental interruption.
+   */
   update() {
     if (Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
       this.playCutscene();
     }
 
     if (Phaser.Input.Keyboard.JustDown(this.escKey)) {
+      // ESC is only honoured on the title card — not during the cutscene
       if (this.cutsceneStarted) return;
       GameFlowManager.goToLevelSelect(this);
     }
   }
 
+  /**
+   * Destroys the title card, plays the Level 3 cutscene video, and wires up
+   * the HTML skip button. Advances to the instructions screen when the video
+   * completes or is skipped.
+   */
   playCutscene() {
+    // Guard prevents double-firing from simultaneous pointer and keyboard input
     if (this.cutsceneStarted) return;
     this.cutsceneStarted = true;
 
@@ -107,7 +133,7 @@ export class Level03EntryScene extends Phaser.Scene {
     this.cutsceneVideo.setMute(false);
     this.cutsceneVideo.play();
 
-    // Optional skip UI if you already have one in HTML
+    // Wire up the HTML skip button if present in the DOM
     this.skipUI = document.getElementById('skip-handler-1');
     if (this.skipUI) {
       this.skipUI.style.display = 'flex';
@@ -141,6 +167,12 @@ export class Level03EntryScene extends Phaser.Scene {
     });
   }
 
+  /**
+   * Displays the instructions overlay after the cutscene ends.
+   * The player can tap or press SPACE to proceed into the main level.
+   * Guarded by a flag to prevent the overlay from being shown more than once,
+   * since both the video complete event and the skip button call this method.
+   */
   displayInstructions() {
     if (this.instructionsShown) return;
     this.instructionsShown = true;
@@ -193,6 +225,10 @@ export class Level03EntryScene extends Phaser.Scene {
     });
   }
 
+  /**
+   * Cleans up all scene resources on exit — destroys the title card and cutscene
+   * video if still active, hides the HTML skip button, and removes all input listeners.
+   */
   shutdown() {
     if (this.titleCard) {
       this.titleCard.destroy();

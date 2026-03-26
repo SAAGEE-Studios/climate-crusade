@@ -2,132 +2,106 @@ import { GameFlowManager } from '../../../Core/GameFlowManager.js';
 import { saveProgress } from '../../../Core/api.js';
 import { GameState} from '../../../Core/GameState.js'
 
+/**
+ * SunkenWellsLevel
+ * -----------------
+ * The main gameplay scene for Level 3 (Sunken Wells).
+ *
+ * The player digs downward through a 9x50 grid of sandstone blocks,
+ * managing an oxygen meter that drains continuously once they enter the grid.
+ * Stars, air refills, shield, and drill powerups are scattered throughout.
+ * Periodic wind hazards damage the player if they occupy the struck row.
+ * The level is won by reaching the water at the bottom of the grid, and
+ * lost if oxygen runs out. Progress is saved to the backend only on a win.
+ */
+
 export class SunkenWellsLevel extends Phaser.Scene {
   constructor() {
     super('SunkenWellsLevel');
   }
 
   preload(){
-
     this.load.image(
       "bg",
       './client/Levels/Level03/Assets/ChatGPT_Image_Mar_10_2026_05_10_04_PM.png'
-    );
-    
-    this.load.image(
-      "block",
-      './client/Levels/Level03/Assets/sandstone_blocktile.png'
-    );
-    
-    this.load.image(
-      "trap",
-      './client/Levels/Level03/Assets/sandstone_traptile.png'
-    );
-    
-    this.load.image(
-      "air",
-      './client/Levels/Level03/Assets/o2.png'
-    );
-    
-    this.load.image(
-      "star",
-      './client/Levels/Level03/Assets/Star_to_collect.png'
-    );
-    
-    this.load.image(
-      "shield",
-      './client/Levels/Level03/Assets/shield.png'
-    );
-    
-    this.load.image(
-      "drill",
-      './client/Levels/Level03/Assets/drill.png'
-    );
-    
-    this.load.image(
-      "wind_damage",
-      './client/Levels/Level03/Assets/sandslide.png'
-    );
-    
-    this.load.image(
-      "overlayBG",
-      './client/Levels/Level03/Assets/end_overlay_background.png'
-    );
-    
-    this.load.image(
-      "waterBottom",
-      "./client/Levels/Level03/Assets/water_cropped.png"
-    );
+    ); 
+    this.load.image("block", './client/Levels/Level03/Assets/sandstone_blocktile.png');
+    this.load.image("trap", './client/Levels/Level03/Assets/sandstone_traptile.png');
+    this.load.image("air", './client/Levels/Level03/Assets/o2.png');
+    this.load.image("star", './client/Levels/Level03/Assets/Star_to_collect.png');
+    this.load.image("shield", './client/Levels/Level03/Assets/shield.png');
+    this.load.image("drill", './client/Levels/Level03/Assets/drill.png');
+    this.load.image("wind_damage", './client/Levels/Level03/Assets/sandslide.png');
+    this.load.image("overlayBG", './client/Levels/Level03/Assets/end_overlay_background.png');
+    this.load.image("waterBottom", "./client/Levels/Level03/Assets/water_cropped.png");
 
     this.makeRectTexture("player", 30, 35, 0xffffff);
   }
 
+  /**
+   * Initializes all level constants, layout, gameplay state, grid, visuals,
+   * physics, camera, input, and HUD in sequence.
+   * Timing and damage constants for the wind hazard system are defined here
+   * so they can be tuned from a single location.
+   */
   create(initData) {
-    // Grid configuration
+    // Grid layout ratios — expressed as fractions of screen dimensions
     this.GRID_WIDTH_RATIO = 0.90;
     this.GRID_HEIGHT_RATIO = 0.80;
     this.SPAWN_AREA_RATIO = 0.15;
+
+    // Wind hazard timing and damage constants
     this.WIND_WARNING_MS = 1000;
     this.WIND_DAMAGE = 15;
-    this.TRAP_DAMAGE = 10;
     this.WIND_VISIBLE_MS = 1000;
     this.WIND_FADE_MS = 1000;
 
+    // Trap tile damage constant
+    this.TRAP_DAMAGE = 10;
+
     this.initLayout();
     
-
-    //BACKGROUND (NEEDS ASSETS)
     const background = this.add.image(0, 0, 'bg').setOrigin(0,0);
     background.setScrollFactor(0);
     background.setDisplaySize(this.scale.width, this.scale.height);
     background.setDepth(-10);
 
-    //MECHANICS(HARD STUFF)
     this.initGameplayState(initData);
-
-    //GRID BUILD
     this.buildGrid();
-
-    //ADD WATER AT BOTTOM OF GRID
     this.initBottomWater();
 
-    //physics + render
     this.blocksGroup = this.physics.add.staticGroup();
     this.pickupsGroup = this.physics.add.staticGroup();
     this.renderAllTiles();
 
-    //player ang physics
     this.spawnPlayer();
     this.initPhysics();
-
-    //CAMERA CONTROL
     this.initCamera();
-
-    //INPUT
     this.initInput();
-
-    //UI
     this.initUI();
   }
 
-  //------------------------------------------------------------------
-  //----------------------CREATE() HELPER FUNCTIONS---------------------
+  // ─────────────────────────────────────────────────────────────────────────
+  // INITIALIZATION HELPERS
+  // ─────────────────────────────────────────────────────────────────────────
   
+  /**
+   * Derives all spatial constants from screen dimensions and the configured
+   * layout ratios. Values produced here i.e. TILE size, world dimensions,
+   * grid offsets,  are used throughout the rest of the scene.
+   */
   initLayout(){
     this.COLS = 9;
     this.ROWS = 50;
 
     this.gridWidthPx  = Math.floor(this.scale.width * this.GRID_WIDTH_RATIO);
     this.gridHeightPx = Math.floor(this.scale.height * this.GRID_HEIGHT_RATIO); 
-
-    //Grid is centered
     this.spawnAreaHeightPx = Math.floor(this.scale.height * this.SPAWN_AREA_RATIO);
     this.gridOffsetY = this.spawnAreaHeightPx;
     
-    //9 tiles per row
+    // Tile size is derived from grid width so the level scales to any screen
     this.TILE = Math.floor(this.gridWidthPx/this.COLS);
 
-    //GRID SIZE
     this.worldW = this.COLS * this.TILE;
     this.worldH = this.ROWS * this.TILE;
 
@@ -137,11 +111,16 @@ export class SunkenWellsLevel extends Phaser.Scene {
     this.winRow = this.ROWS - 1;
   }
 
+  /**
+   * Resets all runtime gameplay variables to their initial values.
+   * Called at the start of every run to ensure a clean state.
+   * isWin is left as undefined rather than false to accurately represent
+   * that the outcome has not yet been determined.
+   */
   initGameplayState(initData){
-    //identification (for saving)
     this.levelId = initData?.levelId ?? "sunken-wells";
 
-    //level flags
+    // Level outcome flags
     this.ended = false;
     this.isWin = undefined;
     this.isPausedMenuOpen = false;
@@ -149,18 +128,18 @@ export class SunkenWellsLevel extends Phaser.Scene {
     this.endOverlayShown = false;
     this.resultSaved = false;
 
-    //oxygen
+    // Oxygen system
     this.oxygenMax = 100;
     this.oxygen = this.oxygenMax;
     this.oxygenDrainPerSec = 2;
     this.airRefillAmount = 33;
 
-    //THE DIG
+    // Dig system
     this.lastDigAt = 0;
     this.digCooldownMs = 500;
     this.digCooldownDrillMs = 200;
 
-    // //Powerups
+    // Powerup state
     this.shieldActive = false;
     this.shieldHitsLeft = 0;
     this.shieldEndsAt = 0;
@@ -168,16 +147,18 @@ export class SunkenWellsLevel extends Phaser.Scene {
     this.drillActive = false;
     this.drillEndsAt = 0;
 
-    // // Stars
+    // Stars tracking
     this.totalStars = 3;
     this.starsCollected = 0;
 
-    // Row hazard: wind/sand slide
+    // wind hazard timing. Randomized to create unpredictability
     this.windEveryMs = Math.random() * (5000) + 10000;
     this.lastWindAt = this.time.now + Phaser.Math.Between(0, 3000);
+
+    // Tracks row with an active wind hazard for damage detection
     this.activeWindRows = new Set();
 
-    //GRID DETAILS
+    // Tile type constants
     this.TILE_EMPTY = 0; 
     this.TILE_BLOCK = 1;
     this.TILE_TRAP = 2;
@@ -187,8 +168,12 @@ export class SunkenWellsLevel extends Phaser.Scene {
     this.TILE_DRILL  = 6;
   }
 
+  /**
+   * Constructs the 2D grid array, starting fully solid, then scatters
+   * stars, air pickups, traps, and powerups using placement passes.
+   * Spacing arguments prevent items of the same type from clustering.
+   */
   buildGrid(){
-    // Start with a world of solid blocks
     this.grid = Array.from({ length: this.ROWS }, () =>
       Array(this.COLS).fill(this.TILE_BLOCK)
     );
@@ -200,6 +185,10 @@ export class SunkenWellsLevel extends Phaser.Scene {
     this.scatterTiles(this.TILE_DRILL, 4, 10);
   }
 
+  /**
+   * Places the water image at the base of the grid using a geometry mask
+   * to clip any transparent padding present in the source asset.
+   */
   initBottomWater(){
     this.waterSectionHeight = this.TILE * 2;
 
@@ -208,9 +197,13 @@ export class SunkenWellsLevel extends Phaser.Scene {
       this.gridBottomY + this.waterSectionHeight / 2 + 20,
       "waterBottom"
     ).setOrigin(0.5).setDepth(-5);
+
     this.water.setDisplaySize(this.scale.width, this.waterSectionHeight );
   }
 
+  /**
+   * Spawns the player sprite above the grid at the center column.
+   */
   spawnPlayer(){
     const spawnC = Math.floor(this.COLS / 2);
     const spawnY = Math.max(this.TILE / 2, this.gridOffsetY - this.TILE * 0.6);
@@ -218,9 +211,12 @@ export class SunkenWellsLevel extends Phaser.Scene {
     
     this.player = this.physics.add.sprite(spawnX, spawnY, "player");
     this.player.setCollideWorldBounds(true);
-    this.player.body.setSize(this.player.width - 6, this.player.height - 2);
   }
 
+  /**
+   * Configures world bounds, gravity, and physics relationships between
+   * the player, block tiles, and pickup tiles.
+   */
   initPhysics(){
     const boundsX = this.gridOffsetX;
     const boundsY = 0;
@@ -234,6 +230,11 @@ export class SunkenWellsLevel extends Phaser.Scene {
     this.physics.add.overlap(this.player, this.pickupsGroup, this.onPickup, null, this);
   }
 
+  /**
+   * Sets camera bounds to match the physics world and configures vertical
+   * follow with a small lerp. A follow offset is applied so the player
+   * appears in the upper portion of the viewport, maximising downward visibility.
+   */
   initCamera(){    
     const boundsX = 0;
     const boundsY = 0;
@@ -248,7 +249,11 @@ export class SunkenWellsLevel extends Phaser.Scene {
     this.cameras.main.startFollow(this.player, true, 0, 0.12, 0, followOffsetY);
   }
 
-  // Keys
+  /**
+   * Registers all keyboard inputs used during gameplay.
+   * Pause confirm (Y) and cancel (N) keys are registered here so they
+   * are always available when the pause menu opens.
+   */
   initInput(){
     this.confirmKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Y);
     this.cancelKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.N);
@@ -263,16 +268,21 @@ export class SunkenWellsLevel extends Phaser.Scene {
     });
   }
 
+  /**
+   * Builds and positions all HUD elements: oxygen bar background, fill, and label;
+   * three star icons; shield icon and charge label; drill icon and status label.
+   * All elements use setScrollFactor(0) to remain fixed to the screen regardless
+   * of camera position.
+   */
   initUI(){
     const topY = 30;
 
-    // Oxygen bar background
+    // Oxygen bar 
     this.oxygenBarBg = this.add
       .rectangle(140, topY, 220, 24, 0x222222, 0.85)
       .setOrigin(0, 0.5)
       .setScrollFactor(0);
 
-    // Oxygen bar fill
     this.oxygenBarFill = this.add
       .rectangle(140, topY, 220, 24, 0x4fd3ff, 1)
       .setOrigin(0, 0.5)
@@ -280,7 +290,6 @@ export class SunkenWellsLevel extends Phaser.Scene {
 
     this.displayedOxygenRatio = 1; 
 
-    // Oxygen label
     this.oxygenLabel = this.add
       .text(40, topY -10, "OXYGEN", {
         fontSize: "22px",
@@ -289,45 +298,50 @@ export class SunkenWellsLevel extends Phaser.Scene {
       })
       .setScrollFactor(0);
 
-    // Stars
+    // Stars icons - dim by default, lit when collected
     this.starIcons = [];
     const starStartX = this.scale.width / 2 - 90;
     for (let i = 0; i < 3; i++) {
       const star = this.add.image(starStartX + i * 90, topY, "star")
         .setScrollFactor(0)
         .setScale(this.TILE / (756*5))
-        .setAlpha(0.25); // uncollected by default
+        .setAlpha(0.25);0
       this.starIcons.push(star);
     }
 
-    // Shield icon
+    // Shield icon and charge counter
     this.shieldIcon = this.add.image(this.scale.width - 140, topY, "shield")
       .setScrollFactor(0)
       .setScale(0.05)
       .setAlpha(0.25);
 
-    // Shield text
     this.shieldText = this.add.text(this.scale.width - 110, topY - 14, "", {
       fontSize: "22px",
       color: "#ffffff",
     }).setScrollFactor(0);
 
-    // Drill icon
+    // Drill icon and status label
     this.drillIcon = this.add.image(this.scale.width - 60, topY, "drill")
       .setScrollFactor(0)
       .setScale(0.05)
       .setAlpha(0.25);
 
-    // Drill text
     this.drillText = this.add.text(this.scale.width - 30, topY - 14, "", {
       fontSize: "22px",
       color: "#ffffff",
     }).setScrollFactor(0);
   }
 
-  //-------------------------------------------------------------------
-  //-------------------------------------------------------------------
-
+  // ─────────────────────────────────────────────────────────────────────────
+  // MAIN LOOP
+  // ─────────────────────────────────────────────────────────────────────────
+ 
+  /**
+   * Main game loop. Processes ESC input first, then exits early if the level
+   * has ended or the pause menu is open. During active gameplay, handles
+   * oxygen drain, powerup expiry, movement, wind row damage, digging,
+   * win detection, wind hazard triggering, and HUD updates in sequence.
+   */
   update(time, delta) {
 
     if (Phaser.Input.Keyboard.JustDown(this.escKey)) {
@@ -364,12 +378,12 @@ export class SunkenWellsLevel extends Phaser.Scene {
 
     const dt = delta / 1000;
 
-    // Oxygen drain
+    // Oxygen drain activates the moment the player crosses into the grid
     if (!this.oxygenActive && this.player.y >= this.gridOffsetY) {
       this.oxygenActive = true;
     }
 
-    // Ability expiry
+    // Powerup expiry checks
     if (this.shieldActive && time >= this.shieldEndsAt) {
       this.shieldActive = false;
       this.shieldHitsLeft = 0;
@@ -387,12 +401,13 @@ export class SunkenWellsLevel extends Phaser.Scene {
       }
     }
     
-    // Movement
     this.handleMovement();
 
+    // Wind row damage check — runs each frame while any rows are active
     if (this.activeWindRows.size > 0) {
       for (const row of this.activeWindRows) {
         if (this.isPlayerTouchingRow(row)) {
+          // Delete before takeDamage so a single event can only deal damage once
           this.activeWindRows.delete(row);
           this.takeDamage(this.WIND_DAMAGE);
           break;
@@ -404,7 +419,7 @@ export class SunkenWellsLevel extends Phaser.Scene {
       this.tryDig(time);
     }
 
-    // WIN CHECK: if the player passes the bottom row, win immediately.
+    // WIN CONDITION: player's position has crossed the bottom of the grid
     if (this.hasReachedWaterline() && !this.ended) {
       this.ended = true;
       this.player.setVelocity(0, 0);
@@ -417,22 +432,32 @@ export class SunkenWellsLevel extends Phaser.Scene {
       return;
     }
 
-    // Wind hazard
+    // Wind hazard fires on a randomized interval
     if (time - this.lastWindAt >= this.windEveryMs) {
       this.lastWindAt = time;
       this.triggerWindRowHazard();
     }
 
-    // UI
     this.updateUI();
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // UI
+  // ─────────────────────────────────────────────────────────────────────────
+ 
+  /**
+   * Updates the oxygen bar fill width and colour, the star icon alpha states,
+   * and the shield and drill icon states each frame.
+   * The displayed ratio is lerped toward the actual value for a smooth bar animation.
+   */
   updateUI() {
-    // Oxygen bar fill width
     const oxygenRatio = Phaser.Math.Clamp(this.oxygen / this.oxygenMax, 0, 1);
+
+    // Smooth bar fill using linear interpolation
     this.displayedOxygenRatio +=(oxygenRatio - this.displayedOxygenRatio) * 0.1;
     this.oxygenBarFill.width = 220 * this.displayedOxygenRatio;
-    // color update
+
+    // color thresholds provide visual urgency at low oxygen levels
     if (oxygenRatio <= 0.20) {
       this.oxygenBarFill.fillColor = 0xff3b30; // red
     } else if (oxygenRatio <= 0.40) {
@@ -442,12 +467,10 @@ export class SunkenWellsLevel extends Phaser.Scene {
     }
     this.oxygenLabel.setText(`OXYGEN: ${Math.ceil(this.oxygen)}/${this.oxygenMax}`);
 
-    // Stars
     for (let i = 0; i < this.starIcons.length; i++) {
       this.starIcons[i].setAlpha(i < this.starsCollected ? 1 : 0.25);
     }
 
-    // Shield
     if (this.shieldActive) {
       this.shieldIcon.setAlpha(1);
       this.shieldText.setText(`${this.shieldHitsLeft}`);
@@ -456,7 +479,6 @@ export class SunkenWellsLevel extends Phaser.Scene {
       this.shieldText.setText("");
     }
 
-    // Drill
     if (this.drillActive) {
       this.drillIcon.setAlpha(1);
       this.drillText.setText("ON");
@@ -466,36 +488,53 @@ export class SunkenWellsLevel extends Phaser.Scene {
     }
   }
 
-  //BOTTOM REACHED WIN CONDITION
+  // ─────────────────────────────────────────────────────────────────────────
+  // MOVEMENT & DIGGING
+  // ─────────────────────────────────────────────────────────────────────────
+ 
+  /**
+   * Returns true when the player's bottom edge has passed the bottom boundary
+   * of the last grid row, signalling that the water has been reached.
+   */
   hasReachedWaterline() {
     const waterLineY = this.gridOffsetY + this.worldH;
     return this.player.y >= waterLineY;
   }
 
-  //MOVEMENT
+  /**
+   * Handles left/right movement and jumping each frame.
+   * Horizontal velocity is set directly rather than accumulated, so the player
+   * stops instantly on key release. Jumping is only permitted when the physics
+   * body reports contact with a surface below.
+   */
   handleMovement() {
     const speed = 200;
 
-    const left = this.cursors.left.isDown || this.keys.A.isDown;
+    const left  = this.cursors.left.isDown  || this.keys.A.isDown;
     const right = this.cursors.right.isDown || this.keys.D.isDown;
-    const up = this.cursors.up.isDown || this.keys.W.isDown;
+    const up    = this.cursors.up.isDown    || this.keys.W.isDown;
 
-    if (left) this.player.setVelocityX(-speed);
+    if (left)       this.player.setVelocityX(-speed);
     else if (right) this.player.setVelocityX(speed);
-    else this.player.setVelocityX(0);
+    else            this.player.setVelocityX(0);
 
     if (up && this.player.body.blocked.down) {
       this.player.setVelocityY(-550);
     }
   }
 
-  //DIGGING
+  /**
+   * Attempts to dig the tile adjacent to the player in the current movement
+   * direction, subject to a cooldown. The drill powerup halves the cooldown.
+   * Digging a trap tile removes it and deals damage to the player.
+   * Digging is blocked in all directions except downward while above the grid.
+   */
   tryDig(time) {
     const cooldown = this.drillActive ? this.digCooldownDrillMs : this.digCooldownMs;
     if (time - this.lastDigAt < cooldown) return;
     this.lastDigAt = time;
 
-    // Above grid: only allow digging DOWN to break in
+    // Above grid: only downward digs are permitted to enter the level
     if (this.player.y < this.gridOffsetY) {
       if (this.getDigDirection() !== "down") return;
     }
@@ -504,10 +543,10 @@ export class SunkenWellsLevel extends Phaser.Scene {
     const { r, c } = this.worldToGrid(this.player.x, this.player.y);
 
     const target = { r, c };
-    if (dir === "left") target.c -= 1;
+    if (dir === "left")  target.c -= 1;
     if (dir === "right") target.c += 1;
-    if (dir === "up") target.r -= 1;
-    if (dir === "down") target.r += 1;
+    if (dir === "up")    target.r -= 1;
+    if (dir === "down")  target.r += 1;
 
     if (!this.inBounds(target.r, target.c)) return;
 
@@ -524,19 +563,37 @@ export class SunkenWellsLevel extends Phaser.Scene {
     }
   }
 
+  /**
+   * Resolves the dig direction from currently held movement keys.
+   * Priority order is up, left, right, down. Defaults to down when no
+   * directional key is held so the player can dig straight down by
+   * pressing E with no other input.
+   */
   getDigDirection() {
-    const up = this.cursors.up.isDown || this.keys.W.isDown;
-    const left = this.cursors.left.isDown || this.keys.A.isDown;
+    const up    = this.cursors.up.isDown    || this.keys.W.isDown;
+    const left  = this.cursors.left.isDown  || this.keys.A.isDown;
     const right = this.cursors.right.isDown || this.keys.D.isDown;
-    const down = this.cursors.down.isDown || this.keys.S.isDown;
+    const down  = this.cursors.down.isDown  || this.keys.S.isDown;
 
-    if (up) return "up";
-    if (left) return "left";
+    if (up)    return "up";
+    if (left)  return "left";
     if (right) return "right";
-    if (down) return "down";
+    if (down)  return "down";
     return "down";
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // WIND HAZARD
+  // ─────────────────────────────────────────────────────────────────────────
+ 
+  /**
+   * Triggers a wind row hazard near the player's current position.
+   * Shows a pulsing warning band for WIND_WARNING_MS, then replaces it with
+   * the sandslide visual asset for WIND_VISIBLE_MS. The affected row is
+   * registered in activeWindRows during the visible window so update() can
+   * detect and deal damage if the player occupies it. The visual then fades
+   * out over WIND_FADE_MS.
+   */
   triggerWindRowHazard() {
     const pr = this.worldToGrid(this.player.x, this.player.y).r;
     const windRow = Phaser.Math.Clamp(
@@ -548,33 +605,24 @@ export class SunkenWellsLevel extends Phaser.Scene {
     const y = this.gridToWorldY(windRow);
     const centerX = this.gridOffsetX + this.worldW / 2;
 
-    // 1) WARNING BAND: visible for 1.5s before the strike
+    // Warning band pulses to alert the player before the strike
     const warningBand = this.add
-      .rectangle(
-        centerX,
-        y,
-        this.worldW,
-        this.TILE,
-        0x490000,   // yellow/orange warning
-        0.4
-      )
+      .rectangle(centerX, y, this.worldW, this.TILE, 0x490000, 0.4)
       .setOrigin(0.5, 0.5);
 
-    // Optional pulsing effect during warning
     this.tweens.add({
       targets: warningBand,
       alpha: { from: 0.5, to: 0.8},
       duration: 250,
       yoyo: true,
-      repeat: 5   // ~1.5 seconds total
+      repeat: 5
     });
 
-    // 2) After 1.5 seconds, apply damage + sandslide visual asset
     this.time.delayedCall(this.WIND_WARNING_MS, () => {
       if (!warningBand.active) return;
       warningBand.destroy();
 
-      // DAMAGE BAND using imported asset
+      // Sandslide visual — physics body keeps it pinned, no gravity applied
       const damageBand = this.physics.add
         .sprite(centerX, y, "wind_damage")
         .setDisplaySize(this.worldW * 1.15, this.TILE * 2.5)
@@ -584,9 +632,11 @@ export class SunkenWellsLevel extends Phaser.Scene {
       damageBand.body.allowGravity = false;
       damageBand.body.setSize(this.worldW, this.TILE, true);
 
+      
+      // Register row — update() checks this Set each frame for player contact
       this.activeWindRows.add(windRow);
 
-      // fade out damaging band
+      // Remove the row from the active set when the visible window closes
       this.time.delayedCall(this.WIND_VISIBLE_MS, () => {
         this.activeWindRows.delete(windRow);
 
@@ -601,6 +651,11 @@ export class SunkenWellsLevel extends Phaser.Scene {
     });
   }
 
+  /**
+   * Returns true if the player's physics body vertically overlaps with the
+   * world-space bounds of the given grid row. Used by update() to determine
+   * whether the player is on an active wind row.
+   */
   isPlayerTouchingRow(row) {
     const rowTop = this.gridToWorldY(row) - this.TILE / 2;
     const rowBottom = rowTop + this.TILE;
@@ -611,10 +666,18 @@ export class SunkenWellsLevel extends Phaser.Scene {
     return playerBottom > rowTop && playerTop < rowBottom;
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // TILE MANAGEMENT
+  // ─────────────────────────────────────────────────────────────────────────
+ 
+  /**
+   * Updates a cell in the grid array, destroys its existing sprite from the
+   * blocks group, and spawns a new sprite if the new type is not empty.
+   * Called by tryDig whenever a block or trap is removed.
+   */
   setTile(r, c, newType) {
     this.grid[r][c] = newType;
 
-    // remove existing block/trap sprite for that cell
     for (const child of this.blocksGroup.getChildren()) {
       if (child.getData("r") === r && child.getData("c") === c) {
         child.destroy();
@@ -622,12 +685,17 @@ export class SunkenWellsLevel extends Phaser.Scene {
       }
     }
 
-    // Spawn sprite if newType is not empty
     if (newType !== this.TILE_EMPTY) {
       this.spawnTileSprite(r, c, newType);
     }
   }
 
+  /**
+   * Handles all four pickup types when the player overlaps a pickup sprite.
+   * Air refills oxygen up to the maximum. Stars increment the collected count.
+   * Shield grants 2 hit charges and a 10-second timer. Drill activates for
+   * 10 seconds, halving the dig cooldown. All pickups destroy themselves on collection.
+   */
   onPickup(player, pickup) {
     const type = pickup.getData("type");
 
@@ -661,6 +729,12 @@ export class SunkenWellsLevel extends Phaser.Scene {
     }
   }
 
+  /**
+   * Applies damage to the player as an oxygen reduction.
+   * If a shield is active with remaining charges, the hit is absorbed
+   * and the charge count decremented instead. The shield deactivates
+   * when all charges are consumed.
+   */
   takeDamage(extraOxygenDrain) {
      if (this.shieldActive && this.shieldHitsLeft > 0) {
        this.shieldHitsLeft -= 1;
@@ -670,6 +744,15 @@ export class SunkenWellsLevel extends Phaser.Scene {
      this.oxygen = Math.max(0, this.oxygen - extraOxygenDrain);
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // WIN / LOSE
+  // ─────────────────────────────────────────────────────────────────────────
+ 
+  /**
+   * Records the win outcome and displays the end overlay.
+   * Setting isWin before calling showEndOverlay ensures saveLevelResult
+   * will permit a backend write when the player exits.
+   */
   endAsWin() {
     if (this.endOverlayShown) return;
     this.isWin = true;
@@ -680,6 +763,10 @@ export class SunkenWellsLevel extends Phaser.Scene {
     this.showEndOverlay(this.isWin);
   }
 
+  /**
+   * Records the lose outcome and displays the end overlay.
+   * isWin is set to false so saveLevelResult will block any backend write.
+   */
   endAsLose() {
     if (this.endOverlayShown) return;
     this.isWin = false;
@@ -690,6 +777,14 @@ export class SunkenWellsLevel extends Phaser.Scene {
     this.showEndOverlay(this.isWin);
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // GRID RENDERING
+  // ─────────────────────────────────────────────────────────────────────────
+ 
+  /**
+   * Iterates every cell in the grid and spawns the corresponding sprite.
+   * Called once during create() after the grid array is fully built.
+   */
   renderAllTiles() {
     for (let r = 0; r < this.ROWS; r++) {
       for (let c = 0; c < this.COLS; c++) {
@@ -698,6 +793,12 @@ export class SunkenWellsLevel extends Phaser.Scene {
     }
   }
 
+  /**
+   * Spawns a single tile sprite at the given grid coordinates based on its type.
+   * Block and trap tiles are added to the static blocks group for collisions.
+   * Pickup tiles are added to the pickups group with a reduced hitbox to require
+   * deliberate contact rather than incidental overlap.
+   */
   spawnTileSprite(r, c, t) {
     const x = this.gridToWorldX(c);
     const y = this.gridToWorldY(r);
@@ -769,7 +870,17 @@ export class SunkenWellsLevel extends Phaser.Scene {
     }
   }
 
-  //PLACES THE STARS AT SPECIFIC RANGES
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // GRID POPULATION HELPERS
+  // ─────────────────────────────────────────────────────────────────────────
+ 
+  /**
+   * Places exactly one star per depth band across three vertical zones,
+   * ensuring stars are distributed across early, mid, and late sections
+   * of the level rather than clustering randomly. Retries up to 200 times
+   * per band to find an unoccupied block cell.
+   */
   placeStarsInBands() {
     const bands = [
       { rMin: 10, rMax: 18},
@@ -789,6 +900,12 @@ export class SunkenWellsLevel extends Phaser.Scene {
     }
   }
 
+  /**
+   * Randomly places a given number of tiles of the specified type throughout
+   * the grid, skipping cells that are already occupied or too close to another
+   * tile of the same type. The spacing parameter controls the minimum grid
+   * distance between tiles of the same type to prevent clustering.
+   */
   scatterTiles(type, count, spacing = 2){
     let placed = 0;
     let tries = 0;
@@ -807,6 +924,11 @@ export class SunkenWellsLevel extends Phaser.Scene {
     }
   }
 
+  /**
+   * Returns true if any cell within the given radius around (r, c) contains
+   * a tile of the specified type. Used by scatterTiles to enforce minimum
+   * spacing between items of the same type.
+   */
   isNearType(r, c, type, radius = 2) {
     for (let rr = r - radius; rr <= r + radius; rr++) {
       for (let cc = c - radius; cc <= c + radius; cc++) {
@@ -817,25 +939,38 @@ export class SunkenWellsLevel extends Phaser.Scene {
     return false;
   }
 
-  //GRID TO COORDINATES
+  // ─────────────────────────────────────────────────────────────────────────
+  // COORDINATE UTILITIES
+  // ─────────────────────────────────────────────────────────────────────────
+ 
+  /** Returns true if the given row and column are within grid bounds. */
   inBounds(r, c) {
     return r >= 0 && r < this.ROWS && c >= 0 && c < this.COLS;
   }
 
+  /** Converts a world-space position to the nearest grid cell (row, column). */
   worldToGrid(x, y) {
     const localX = x - this.gridOffsetX;
     const localY = y - this.gridOffsetY;
     return { c: Math.floor(localX / this.TILE), r: Math.floor(localY / this.TILE) };
   }
 
+  /** Returns the world X centre of the given grid column. */
   gridToWorldX(c) {
     return this.gridOffsetX + c * this.TILE + this.TILE / 2;
   }
 
+ 
+  /** Returns the world Y centre of the given grid row. */
   gridToWorldY(r) {
     return this.gridOffsetY + r * this.TILE + this.TILE / 2;
   }
 
+  /**
+   * Generates and caches a rounded rectangle texture under the given key.
+   * The existence check prevents duplicate texture registration if the scene
+   * is visited more than once in the same session.
+   */
   makeRectTexture(key, w, h, color) {
     if (this.textures.exists(key)) return;
     const g = this.add.graphics();
@@ -845,12 +980,19 @@ export class SunkenWellsLevel extends Phaser.Scene {
     g.destroy();
   }
 
-  //PAUSE MENU
+  // ─────────────────────────────────────────────────────────────────────────
+  // PAUSE MENU
+  // ─────────────────────────────────────────────────────────────────────────
+ 
+  /**
+   * Pauses physics, overlays a dim and a panel, and registers Y/N keys for
+   * confirm and cancel. All elements use setScrollFactor(0) so the menu
+   * remains centred on screen regardless of how far the camera has scrolled.
+   */
   openPauseMenu() {
     this.isPausedMenuOpen = true;
     this.physics.pause();
 
-    // Dark overlay
     this.pauseDim = this.add.rectangle(
         this.scale.width / 2,
         this.scale.height / 2,
@@ -860,7 +1002,6 @@ export class SunkenWellsLevel extends Phaser.Scene {
         0.6
     ).setDepth(30).setScrollFactor(0);
 
-    // Panel box
     this.pauseBox = this.add.rectangle(
         this.scale.width / 2,
         this.scale.height / 2,
@@ -870,7 +1011,6 @@ export class SunkenWellsLevel extends Phaser.Scene {
         0.6
     ).setDepth(31).setRounded(20).setScrollFactor(0);
 
-    // Text
     this.pauseText = this.add.text(
         this.scale.width / 2,
         this.scale.height / 2 - 30,
@@ -893,26 +1033,35 @@ export class SunkenWellsLevel extends Phaser.Scene {
     ).setOrigin(0.5).setDepth(32).setScrollFactor(0);
   } 
 
+  /**
+   * Destroys all pause menu elements and resumes physics.
+   */
   closePauseMenu() {
-
     this.isPausedMenuOpen = false;
-
     this.pauseDim.destroy();
     this.pauseBox.destroy();
     this.pauseText.destroy();
     this.pauseSubText.destroy();
-
     this.physics.resume();
   }
 
 
-  //LEVEL SAVING FUNCTIONALITY
+  
+  // ─────────────────────────────────────────────────────────────────────────
+  // SAVING
+  // ─────────────────────────────────────────────────────────────────────────
+ 
+  /**
+   * Saves the player's star count to the backend, but only on a win.
+   * The isWin guard ensures stars collected during a lost run are never written.
+   * The resultSaved flag prevents duplicate API calls if the player presses
+   * ESC multiple times after the end overlay appears.
+   */
   async saveLevelResult() {
     if (this.resultSaved) return;
     if (!this.isWin) return;
 
     try {
-      //backend save if user logged in
       if (GameState.userId) {
         await saveProgress(
           GameState.userId,
@@ -920,8 +1069,7 @@ export class SunkenWellsLevel extends Phaser.Scene {
           this.starsCollected
         )
       }
-      this.resultSaved = true;
-      
+      this.resultSaved = true;    
       console.log("Progress saved;", this.levelId, this.starsCollected);
     } catch(error){
       console.error("Failed to save progress", error);
@@ -929,6 +1077,16 @@ export class SunkenWellsLevel extends Phaser.Scene {
   
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // END OVERLAY
+  // ─────────────────────────────────────────────────────────────────────────
+ 
+  /**
+   * Builds and animates the end-of-level overlay panel containing the outcome
+   * title, collected star icons, a climate action tips section, and an exit
+   * prompt. The container is fixed to the screen via setScrollFactor(0) and
+   * pops in using a Back.Out scale and alpha tween.
+   */
   showEndOverlay(isWin) {
     if (this.endOverlayShown) return;
     this.endOverlayShown = true;
@@ -936,7 +1094,8 @@ export class SunkenWellsLevel extends Phaser.Scene {
     const centerX = this.scale.width / 2;
     const centerY = this.scale.height / 2;
 
-    // dark blocker
+ 
+    // Full-screen interactive blocker prevents clicks from passing through
     const blocker = this.add.rectangle(
       centerX,
       centerY,
@@ -953,7 +1112,6 @@ export class SunkenWellsLevel extends Phaser.Scene {
       if (event) event.stopPropagation();
     });
 
-    // panel container
     const container = this.add.container(centerX, centerY)
       .setScrollFactor(0)
       .setDepth(2001);
@@ -971,29 +1129,14 @@ export class SunkenWellsLevel extends Phaser.Scene {
     const panelW = panel.displayWidth;
     const panelH = panel.displayHeight;
 
-    const panelShadow = this.add.rectangle(
-      8,
-      8,
-      panelW,
-      panelH,
-      0x000000,
-      0.35
-    );
-
+    const panelShadow = this.add.rectangle(8, 8, panelW, panelH, 0x000000, 0.35);
     panelShadow.setDepth(panel.depth - 1);
 
-    const panelBorder = this.add.rectangle(
-      0,
-      0,
-      panelW + 12,
-      panelH + 12,
-      0x000000,
-      0.35
-    ).setStrokeStyle(3, 0x222222, 1);
+    const panelBorder = this.add.rectangle(0, 0, panelW + 12, panelH + 12, 0x000000, 0.35)
+      .setStrokeStyle(3, 0x222222, 1);
 
     const title = this.add.text(
-      0,
-      -140,
+      0, -140,
       isWin ? "WATER REACHED" : "OUT OF OXYGEN",
       {
         fontSize: "42px",
@@ -1013,7 +1156,7 @@ export class SunkenWellsLevel extends Phaser.Scene {
       }
     ).setOrigin(0.5);
 
-    // star icons
+    // star icons - lit for collected, dim for uncollected
     const starNodes = [];
     const starSpacing = 90;
     const starStartX = -starSpacing;
@@ -1074,7 +1217,7 @@ export class SunkenWellsLevel extends Phaser.Scene {
       exitText
     ]);
 
-    // pop-in animation
+    // Pop-in animation
     container.setScale(0.85);
     container.setAlpha(0);
 
@@ -1089,5 +1232,4 @@ export class SunkenWellsLevel extends Phaser.Scene {
     this.endOverlayBlocker = blocker;
     this.endOverlayContainer = container;
   }
-
 }
