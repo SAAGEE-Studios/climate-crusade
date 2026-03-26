@@ -1,21 +1,49 @@
 import { GameFlowManager } from '../Core/GameFlowManager.js';
 import { GameState } from '../Core/GameState.js';
 import { LEVELS } from '../Core/LevelRegistry.js';
-import { getProgress } from '../Core/api.js';
+import { getProgress, deleteAccount } from '../Core/api.js';
+
+/**
+ * LevelSelectScene
+ * -----------------
+ * Handles level selection, progress visualization, and account management.
+ *
+ * This scene displays all available levels, retrieves and applies
+ * user progress from the backend, updates Earth’s health based on
+ * collected stars, and manages navigation into selected levels.
+ *
+ * It also provides session-related actions such as logout and
+ * secure account deletion through a confirmation modal.
+ */
 
 export class LevelSelectScene extends Phaser.Scene {
     constructor() {
         super('LevelSelectScene');
         this.selectedLevelId = null;
+        this.infoPanel = null;
+        this.isDeletePopupOpen = false;
     }
 
     preload() {
         this.load.image('backgroundLevelSelectScene', './client/Shared/LevelSelectScene/Background.png');
+        this.load.image('level_1_info_panel', './client/Shared/LevelSelectScene/Level_1_Info_Panel.png');
+        this.load.audio('levelSelectTheme', './client/Shared/Audio/Level_Select_Soundtrack.mp3');
     }
 
     create() {
+        this.infoPanel = null;
+        this.isDeletePopupOpen = false;
+
         this.cameras.main.fadeIn(200);
         this.events.on('shutdown', this.shutdown, this);
+
+        if (!GameState.bgMusic) {
+            GameState.bgMusic = this.sound.add('levelSelectTheme', {
+                volume: 0.4,
+                loop: true
+            });
+            GameState.bgMusic.play();
+        }
 
         const bg = this.add.image(0, 0, 'backgroundLevelSelectScene').setOrigin(0, 0);
         bg.setDisplaySize(this.scale.width, this.scale.height);
@@ -30,7 +58,7 @@ export class LevelSelectScene extends Phaser.Scene {
         this.selectMenu.style.display = 'flex';
 
         this.logoutButton = document.getElementById('logout-button');
-        this.logoutButton.style.display = 'flex'; 
+        this.logoutButton.style.display = 'flex';
         this.logoutButton.style.justifyContent = 'center';
 
         this.deleteAccountButton = document.getElementById('delete-account-button');
@@ -42,9 +70,13 @@ export class LevelSelectScene extends Phaser.Scene {
 
         this.playButton = document.getElementsByClassName('play-button')[0];
         this.playButton.style.display = 'flex';
-        
+
         this.playButton.onclick = () => {
             this.startSelectedLevel();
+        };
+
+        this.deleteAccountButton.onclick = () => {
+            this.showDeleteConfirmation();
         };
 
         this.selectionScreen = document.getElementById('selection-screen');
@@ -68,10 +100,34 @@ export class LevelSelectScene extends Phaser.Scene {
         });
     }
 
+    /**
+     * Stores the selected level ID and displays its corresponding
+     * information panel on the selection screen.
+     */
+
     handleLevelSelection(levelId) {
         this.selectedLevelId = levelId;
         this.selectionScreen.style.display = 'block';
+        const infoScreen = document.getElementById('info-image');
+
+        const panelMap = {
+            level01: 'Level_1_Info_Panel.png',
+            level02: 'Level_2_Info_Panel.png',
+            level03: 'Level_3_Info_Panel.png',
+            level04: 'Level_4_Info_Panel.png'
+        };
+
+        if (panelMap[levelId]) {
+            infoScreen.src = `./client/Shared/LevelSelectScene/${panelMap[levelId]}`;
+        } else {
+            infoScreen.src = '';
+        }
     }
+
+    /**
+     * Loads the selected level's configuration file and transitions
+     * to its defined entry scene.
+     */
 
     async startSelectedLevel() {
         if (!this.selectedLevelId) return;
@@ -93,10 +149,20 @@ export class LevelSelectScene extends Phaser.Scene {
 
         this.cameras.main.fadeOut(200);
 
+         if (GameState.bgMusic) {
+            GameState.bgMusic.stop();
+            GameState.bgMusic = null;
+        }
+
         this.cameras.main.once('camerafadeoutcomplete', () => {
             GameFlowManager.goToLevel(this, entryScene);
         });
     }
+
+    /**
+     * Fetches the logged-in user's saved progress from the backend
+     * and applies it to the UI.
+     */
 
     async loadProgress() {
         try {
@@ -107,7 +173,12 @@ export class LevelSelectScene extends Phaser.Scene {
         }
     }
 
-    applyProgressToUI(progressArray){
+    /**
+     * Maps saved progress to level buttons and updates star visuals
+     * and overall Earth health.
+     */
+
+    applyProgressToUI(progressArray) {
         const progressMap = {}
 
         progressArray.forEach(row => {
@@ -129,7 +200,7 @@ export class LevelSelectScene extends Phaser.Scene {
             const stars = button.querySelectorAll('.star');
 
             stars.forEach((starImg, index) => {
-                if(index < starsEarned){
+                if (index < starsEarned) {
                     starImg.src = "./client/Shared/LevelSelectScene/FilledStar.png";
                 } else {
                     starImg.src = "./client/Shared/LevelSelectScene/UnfilledStar.png";
@@ -140,11 +211,16 @@ export class LevelSelectScene extends Phaser.Scene {
         this.updateEarthHealth(totalStars);
     }
 
-    updateEarthHealth(totalStars){
+    /**
+     * Calculates and updates Earth’s health percentage based on
+     * total stars collected across all levels.
+     */
+
+    updateEarthHealth(totalStars) {
         const maxStarsPerLevel = 3;
         const maxStarsTotal = LEVELS.length * maxStarsPerLevel;
 
-        const starContribution = (totalStars/maxStarsTotal) * 50;
+        const starContribution = (totalStars / maxStarsTotal) * 50;
         const healthPercent = 50 + starContribution;
 
         const barFill = document.getElementById('earth-bar-fill');
@@ -154,8 +230,19 @@ export class LevelSelectScene extends Phaser.Scene {
         percentText.textContent = `${Math.round(healthPercent)}%`;
     }
 
-    logout(){
+    /**
+     * Stops background music, resets session state,
+     * and returns the user to the login screen.
+     */
+
+    logout() {
         this.cameras.main.fadeOut(200);
+
+        if (GameState.bgMusic) {
+            console.log("Stopped");
+            GameState.bgMusic.stop();
+            GameState.bgMusic = null;
+        }
 
         this.cameras.main.once('camerafadeoutcomplete', () => {
             GameState.reset();
@@ -163,10 +250,208 @@ export class LevelSelectScene extends Phaser.Scene {
         });
     }
 
-    deleteAccount(){
-        
+    /**
+     * Displays a modal confirmation overlay for account deletion
+     * and temporarily disables other UI interactions.
+     */
+
+    showDeleteConfirmation() {
+        if (this.isDeletePopupOpen) return;
+        this.isDeletePopupOpen = true;
+
+        // Disable DOM interaction
+        const levelButtons = this.levelUI.querySelectorAll('.level-button');
+
+        levelButtons.forEach(btn => {
+            btn.style.pointerEvents = 'none';
+        });
+
+        this.playButton.style.pointerEvents = 'none';
+        this.logoutButton.style.pointerEvents = 'none';
+        this.deleteAccountButton.style.pointerEvents = 'none';
+
+        const depth = 500;
+
+        // Dark overlay
+        this.deleteDim = this.add.rectangle(
+            this.scale.width / 2,
+            this.scale.height / 2,
+            this.scale.width,
+            this.scale.height,
+            0x000000,
+            0.6
+        ).setDepth(depth);
+
+        // Password input (DOM element overlay)
+        this.passwordInput = document.createElement('input');
+        this.passwordInput.type = 'password';
+        this.passwordInput.placeholder = 'Enter password to confirm';
+        this.passwordInput.style.position = 'absolute';
+        this.passwordInput.style.left = '50%';
+        this.passwordInput.style.top = '48%';
+        this.passwordInput.style.transform = 'translate(-50%, -50%)';
+        this.passwordInput.style.padding = '10px';
+        this.passwordInput.style.borderRadius = '10px';
+        this.passwordInput.style.border = 'none';
+        this.passwordInput.style.width = '300px';
+        this.passwordInput.style.textAlign = 'center';
+        this.passwordInput.style.fontSize = '16px';
+
+        document.body.appendChild(this.passwordInput);
+
+        // Panel
+        this.deletePanel = this.add.graphics().setDepth(depth + 1);
+        this.deletePanel.fillStyle(0x0b2a3a, 1);
+        this.deletePanel.lineStyle(2, 0x4ceaff, 1);
+        this.deletePanel.fillRoundedRect(610, 390, 700, 300, 25);
+        this.deletePanel.strokeRoundedRect(610, 390, 700, 300, 25);
+
+        // Text
+        this.deleteText = this.add.text(
+            this.scale.width / 2,
+            450,
+            "Are you sure you want to delete your account?\nThis action cannot be undone.",
+            {
+                fontSize: '22px',
+                color: '#ffffff',
+                align: 'center'
+            }
+        ).setOrigin(0.5).setDepth(depth + 2);
+
+        // YES Button
+        this.createDeleteButton("YES", 830, 610, 0xff4444, async () => {
+            const password = this.passwordInput.value;
+
+            if (!password) return;
+
+            try {
+                await deleteAccount(GameState.userId, password);
+
+                this.passwordInput.remove();
+                this.closeDeletePopup();
+
+                GameState.reset();
+                GameFlowManager.goToLogin(this);
+
+            } catch (err) {
+                console.error(err);
+                this.passwordInput.value = '';
+                this.passwordInput.placeholder = 'Incorrect password';
+            }
+        });
+
+        // NO Button
+        this.createDeleteButton("NO", 1090, 610, 0x0299ec, () => {
+            this.closeDeletePopup();
+        });
     }
 
+    /**
+     * Displays a modal confirmation overlay for account deletion
+     * and temporarily disables other UI interactions.
+     */
+
+    createDeleteButton(label, x, y, color, callback) {
+
+        const depth = 502;
+
+        const button = this.add.graphics().setDepth(depth);
+        button.fillStyle(color, 1);
+        button.fillRoundedRect(x - 80, y - 25, 160, 50, 20);
+
+        const text = this.add.text(x, y, label, {
+            fontSize: '20px',
+            color: '#ffffff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(depth + 1);
+
+        const hitArea = this.add.rectangle(x, y, 160, 50, 0x000000, 0)
+            .setInteractive()
+            .setDepth(depth + 2);
+
+        hitArea.on('pointerover', () => {
+            button.clear();
+            button.fillStyle(Phaser.Display.Color.GetColor(
+                Math.min(255, (color >> 16) + 40),
+                Math.min(255, ((color >> 8) & 0xff) + 40),
+                Math.min(255, (color & 0xff) + 40)
+            ), 1);
+            button.fillRoundedRect(x - 80, y - 25, 160, 50, 20);
+        });
+
+        hitArea.on('pointerout', () => {
+            button.clear();
+            button.fillStyle(color, 1);
+            button.fillRoundedRect(x - 80, y - 25, 160, 50, 20);
+        });
+
+        hitArea.on('pointerdown', callback);
+
+        // Store references for cleanup
+        if (!this.deleteElements) this.deleteElements = [];
+        this.deleteElements.push(button, text, hitArea);
+    }
+
+    /**
+     * Closes the account deletion modal and restores
+     * normal UI interaction.
+     */
+
+    closeDeletePopup() {
+        this.isDeletePopupOpen = false;
+
+        this.deleteDim.destroy();
+        this.deletePanel.destroy();
+        this.deleteText.destroy();
+
+        if (this.deleteElements) {
+            this.deleteElements.forEach(el => el.destroy());
+            this.deleteElements = [];
+        }
+
+        if (this.passwordInput) {
+            this.passwordInput.remove();
+            this.passwordInput = null;
+        }
+
+        const levelButtons = this.levelUI.querySelectorAll('.level-button');
+
+        levelButtons.forEach(btn => {
+            btn.style.pointerEvents = 'auto';
+        });
+
+        this.playButton.style.pointerEvents = 'auto';
+        this.logoutButton.style.pointerEvents = 'auto';
+        this.deleteAccountButton.style.pointerEvents = 'auto';
+
+        this.isModalOpen = false;
+    }
+
+    /**
+     * Sends a delete account request to the backend
+     * and redirects to login upon success.
+     */
+
+    async confirmDelete() {
+        try {
+            // For security you should prompt password,
+            // but assuming already authenticated:
+            await deleteAccount(GameState.userId, prompt("Enter password to confirm:"));
+
+            this.closeDeletePopup();
+
+            GameState.reset();
+            GameFlowManager.goToLogin(this);
+
+        } catch (err) {
+            console.error("Delete failed:", err);
+        }
+    }
+
+    /**
+     * Cleans up DOM visibility when the scene is shut down.
+     */
+    
     shutdown() {
         if (this.levelUI) {
             this.levelUI.style.display = 'none';
@@ -184,12 +469,13 @@ export class LevelSelectScene extends Phaser.Scene {
             this.selectionScreen.style.display = 'none';
         }
 
-        if (this.logoutButton){
+        if (this.logoutButton) {
             this.logoutButton.style.display = 'none';
         }
 
-        if (this.deleteAccountButton){
+        if (this.deleteAccountButton) {
             this.deleteAccountButton.style.display = 'none';
         }
+
     }
 }

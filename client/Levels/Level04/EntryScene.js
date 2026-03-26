@@ -1,3 +1,5 @@
+import { GameFlowManager } from '../../Core/GameFlowManager.js';
+
 export class Level04EntryScene extends Phaser.Scene {
     constructor() {
         super('Level04EntryScene');
@@ -86,6 +88,10 @@ export class Level04EntryScene extends Phaser.Scene {
 
         this.input.keyboard.once('keydown-SPACE', () => {
             this.scene.start('Level04CutsceneScene');
+        });
+
+        this.input.keyboard.once('keydown-ESC', () => {
+            GameFlowManager.goToLevelSelect(this);
         });
     }
 

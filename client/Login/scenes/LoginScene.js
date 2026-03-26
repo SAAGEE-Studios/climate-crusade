@@ -2,6 +2,16 @@ import { GameFlowManager } from '../../Core/GameFlowManager.js';
 import { GameState } from '../../Core/GameState.js';
 import { login } from '../../Core/api.js';
 
+/**
+ * LoginScene
+ * -----------
+ * Handles user authentication and entry into the game.
+ *
+ * This scene manages login form interaction, background music
+ * initialization, and navigation to either the first-time cutscene
+ * or the level selection screen upon successful authentication.
+ */
+
 export class LoginScene extends Phaser.Scene {
 
     constructor() {
@@ -18,6 +28,7 @@ export class LoginScene extends Phaser.Scene {
         const bg = this.add.image(0, 0, 'backgroundLoginScene').setOrigin(0, 0);
         bg.setDisplaySize(this.scale.width, this.scale.height);
         this.events.on('shutdown', this.shutdown, this);
+
 
         if (!GameState.bgMusic) {
             GameState.bgMusic = this.sound.add('calmAdventureMusic', {
@@ -43,11 +54,23 @@ export class LoginScene extends Phaser.Scene {
             });
         };
 
+        // Prevents multiple rapid login submissions
+        let loginLocked = false;
+
         loginButton.onclick = async () => {
+            if (loginLocked) return;
+            loginLocked = true;
+
             click.play();
             await this.handleLogin();
+            loginLocked = false;
         };
     }
+
+    /**
+     * Validates login input, sends authentication request to the backend,
+     * updates global session state, and transitions to the appropriate scene.
+     */
 
     async handleLogin() {
         const status = document.getElementById('login-status');
@@ -64,20 +87,26 @@ export class LoginScene extends Phaser.Scene {
         try {
             const data = await login(username, password);
 
+            status.textContent = "Logging  in.....";
+            status.style.color = 'green';
+
             GameState.userId = data.user_id;
             GameState.isFirstTime = data.first_time_play;
 
-            this.loginUI.style.display = 'none';
+            setTimeout(() => {
+                status.textContent = "";
+                this.loginUI.style.display = 'none';
 
-            this.cameras.main.fadeOut(200);
+                this.cameras.main.fadeOut(200);
 
-            this.cameras.main.once('camerafadeoutcomplete', () => {
-                if (GameState.isFirstTime) {
-                    GameFlowManager.goToFirstTimeCutscene(this);
-                } else {
-                    GameFlowManager.goToLevelSelect(this);
-                }
-            });
+                this.cameras.main.once('camerafadeoutcomplete', () => {
+                    if (GameState.isFirstTime) {
+                        GameFlowManager.goToFirstTimeCutscene(this);
+                    } else {
+                        GameFlowManager.goToLevelSelect(this);
+                    }
+                });
+            }, 2000);
 
         } catch (err) {
             status.textContent = "Username or Password Incorrect";
@@ -86,12 +115,17 @@ export class LoginScene extends Phaser.Scene {
         }
     }
 
+    /**
+     * Stops background music and hides DOM-based login UI
+     * when the scene is exited.
+     */
+
     shutdown() {
         if (GameState.bgMusic) {
             GameState.bgMusic.stop();
             GameState.bgMusic = null;
         }
-        
+
         if (this.loginUI) {
             this.loginUI.style.display = 'none';
         }

@@ -1,3 +1,17 @@
+/**
+ * InputValidation
+ * ----------------
+ * Utility module responsible for validating user input fields
+ * during authentication and account creation.
+ *
+ * This module centralizes validation logic for email, username,
+ * password, and date of birth to ensure consistency and prevent
+ * duplicate validation rules across scenes.
+ *
+ * Each function returns a boolean indicating whether the input
+ * satisfies the required format and constraints.
+ */
+
 export const InputValidation = {
     validateEmail(email){
         const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

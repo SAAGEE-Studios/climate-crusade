@@ -2,6 +2,16 @@ import { GameFlowManager } from '../../Core/GameFlowManager.js';
 import { InputValidation } from '../../Core/InputValidation.js';
 import { signup } from '../../Core/api.js';
 
+/**
+ * SignupScene
+ * ------------
+ * Handles new user registration and account creation.
+ *
+ * This scene validates user input, communicates with the backend
+ * signup endpoint, and transitions back to the login screen
+ * upon successful registration.
+ */
+
 export class SignupScene extends Phaser.Scene {
     constructor() {
         super('SignupScene');
@@ -13,13 +23,20 @@ export class SignupScene extends Phaser.Scene {
             'buttonclick',
             './client/Shared/Audio/UIButton1.mp3'
         );
+        this.load.image('arol_signup', './client/Shared/LoginScene/Arol_Signup.png');
     }
 
     create() {
         this.cameras.main.fadeIn(200);
 
+        // Prevents multiple rapid signup submissions
+        this.signupLocked = false;
+
         const bg = this.add.image(0, 0, 'backgroundSignupScene').setOrigin(0, 0);
         bg.setDisplaySize(this.scale.width, this.scale.height);
+
+        const instructions = this.add.image(0, 390, 'arol_signup').setOrigin(0, 0)
+        .setScale(1).setAlpha(0.85);
 
         this.signupUI = document.getElementById('signup-ui');
         this.signupUI.style.display = 'flex';
@@ -38,11 +55,20 @@ export class SignupScene extends Phaser.Scene {
         };
 
         signupButton.onclick = async () => {
-            console.log('Handle Signup Reached');
+            if (this.signupLocked) return;
+            this.signupLocked = true;
+
             clickS.play();
-            this.handleSignup();
+            await this.handleSignup();
+
+            this.signupLocked = false;
         }
-    }
+    } 
+
+    /**
+     * Validates user input fields, sends account creation request
+     * to the backend, and provides UI feedback based on the result.
+     */
 
     async handleSignup() {
         const status = document.getElementById('signup-status');
@@ -75,6 +101,9 @@ export class SignupScene extends Phaser.Scene {
         }
 
         try {
+            status.textContent = "Signing  up.....";
+            status.style.color = 'green';
+
             await signup({
                 username,
                 email,
@@ -87,6 +116,7 @@ export class SignupScene extends Phaser.Scene {
             status.style.color = 'green';
 
             setTimeout(() => {
+                status.textContent = '';
                 this.signupUI.style.display = 'none';
                 GameFlowManager.goToLogin(this);
             }, 1200);
@@ -103,6 +133,10 @@ export class SignupScene extends Phaser.Scene {
     update() {
     }
 
+    /**
+     * Hides DOM-based signup UI elements when the scene exits.
+     */
+    
     shutdown() {
         if (this.signupUI) {
             this.signupUI.style.display = 'none';
