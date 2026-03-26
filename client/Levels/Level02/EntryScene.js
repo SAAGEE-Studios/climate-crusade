@@ -1,6 +1,18 @@
 import { GameFlowManager } from '../../Core/GameFlowManager.js';
 import { GameState } from '../../Core/GameState.js';
 
+/**
+ * Level02EntryScene
+ * ------------------
+ * Entry gateway for Level 02 (Deep Purge).
+ *
+ * This scene displays the static title card, plays the
+ * introductory cutscene with voiceover, and presents gameplay instructions
+ * before transitioning into the playable level.
+ *
+ * It supports keyboard and mobile input, skip functionality,
+ * and proper cleanup of video and audio resources on shutdown.
+ */
 export class Level02EntryScene extends Phaser.Scene {
 
     constructor() {
@@ -90,6 +102,11 @@ export class Level02EntryScene extends Phaser.Scene {
         }
     }
 
+    /**
+     * Hides the title screen and plays the main level cutscene and voiceover.
+     * Handles dynamic video scaling, provides skip functionality, and
+     * transitions to instructions upon completion or manual skip.
+     */
     playCutscene() {
         if (this.cutsceneStarted) return;
         this.cutsceneStarted = true;
@@ -148,6 +165,10 @@ export class Level02EntryScene extends Phaser.Scene {
         });
     }
 
+    /**
+     * Interrupts the cutscene and voiceover playback.
+     * Cleans up media resources and directly transitions to the instructions overlay.
+     */
     skipToLevel() {
         if (this.skipUI) this.skipUI.style.display = 'none';
 
@@ -167,6 +188,11 @@ export class Level02EntryScene extends Phaser.Scene {
 
     }
 
+    /**
+     * Displays the level instruction overlay.
+     * Scales the instruction graphic to fit the screen and waits for user
+     * input (tap or spacebar) before starting the gameplay scene.
+     */
     showInstructions() {
         const centerX = this.cameras.main.width / 2;
         const centerY = this.cameras.main.height / 2;
@@ -198,6 +224,10 @@ export class Level02EntryScene extends Phaser.Scene {
         });
     }
 
+    /**
+     * Cleans up active videos, voiceover audio, DOM skip UI, and input listeners
+     * to prevent resource leaks when leaving the scene.
+     */
     shutdown() {
         if (this.cutsceneVideo) {
             this.cutsceneVideo.stop();
