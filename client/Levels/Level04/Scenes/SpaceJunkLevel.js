@@ -106,6 +106,10 @@ export class SpaceJunkLevel extends Phaser.Scene {
         this.time.delayedCall(1000, () => this.startNextWave());
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // MAP CREATION LOGIC
+    // ─────────────────────────────────────────────────────────────────────────
+
     createStarfield() {
         for (let i = 0; i < 150; i++) {
             const star = this.add.circle(
@@ -186,6 +190,10 @@ export class SpaceJunkLevel extends Phaser.Scene {
         }
         this.starDisplay.setText(starStr);
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // WAVES LOGIC
+    // ─────────────────────────────────────────────────────────────────────────
 
     /**
      * Advances the game to the next wave.
@@ -340,6 +348,10 @@ export class SpaceJunkLevel extends Phaser.Scene {
         });
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // INTERACTIVE & COLLECTIBLE ITEMS LOGIC
+    // ─────────────────────────────────────────────────────────────────────────
+
     spawnDebris(types) {
         if (this.gameOver || this.levelComplete) return;
 
@@ -391,6 +403,11 @@ export class SpaceJunkLevel extends Phaser.Scene {
         });
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // GAMEPLAY LOGIC
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Allows player's ship shoot bullets
     shootBullet() {
         const bullet = this.bullets.create(this.ship.x, this.ship.y - 35, 'l4_bullet');
         if (bullet) {

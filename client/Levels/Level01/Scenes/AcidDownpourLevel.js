@@ -297,6 +297,10 @@ export class AcidDownpourLevel extends Phaser.Scene {
         this.updateButtonVisuals();
     }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // PLAYER & MOVEMENT LOGIC
+  // ─────────────────────────────────────────────────────────────────────────
+
     createPlayer() {
         this.player = this.physics.add.sprite(140, 800, 'green_front');
 
@@ -364,6 +368,9 @@ export class AcidDownpourLevel extends Phaser.Scene {
         this.player.anims.play('walk_right', true);
     }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // PLATFORMS & MAP BOUNDARIES TO KEEP PLAYERS IN
+  // ─────────────────────────────────────────────────────────────────────────
     createBoundary() {
         const groundHeight = 75;
         const ceilingHeight = 65;
@@ -457,6 +464,10 @@ export class AcidDownpourLevel extends Phaser.Scene {
         });
     }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // ITEM PLACEMENTS & COLLECTIBLES LOGIC
+  // ─────────────────────────────────────────────────────────────────────────
+
     createCollectables() {
         this.stars = this.physics.add.group();
 
@@ -505,6 +516,10 @@ export class AcidDownpourLevel extends Phaser.Scene {
         this.lastAcid.setCrop(0, 0, remainingWidth / 0.8, this.lastAcid.height);
         this.lastAcid.refreshBody();
     }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // GAMEPLAY ELEMENTS (LEVER TRIGGER, LIVES MANAGEMENT, BUTTON TRIGGER e.t.c.)
+  // ─────────────────────────────────────────────────────────────────────────
 
     /**
      * Handles player collision with acid hazards.
