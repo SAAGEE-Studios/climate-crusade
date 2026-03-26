@@ -61,7 +61,7 @@ export class DeepPurgeLevel extends Phaser.Scene {
         this.load.image('Level02Background', './client/Levels/Level02/Assets/Backgrounds/Background_Level_2.png');
         this.load.image('starCollect', './client/Levels/Level02/Assets/Items/Star_to_collect.png');
         this.load.image('boat', './client/Levels/Level02/Assets/Items/Boat.png');
-        this.load.image('hook', './client/Levels/Level02/Assets/Items/Hook-t.png');
+        this.load.image('hook', './client/Levels/Level02/Assets/Items/Hook.png');
 
         this.load.image('bottle', './client/Levels/Level02/Assets/Items/Plastic_Bottle.webp');
         this.load.image('wrap', './client/Levels/Level02/Assets/Items/Plastic_Wrap.webp');
@@ -87,7 +87,7 @@ export class DeepPurgeLevel extends Phaser.Scene {
         this.tweens.add({ targets: hint, alpha: 0, delay: 3000, duration: 1000 });
     }
 
-    update() {
+    update(time,delta) {
         // Handle active Pause Menu state
         if (this.isPausedMenuOpen) {
             if (Phaser.Input.Keyboard.JustDown(this.confirmKey)) {
@@ -127,7 +127,7 @@ export class DeepPurgeLevel extends Phaser.Scene {
             this.launchHook();
         }
 
-        this.updateHook();
+        this.updateHook(delta);
         this.drawRopeAndHook();
     }
 
@@ -272,24 +272,25 @@ export class DeepPurgeLevel extends Phaser.Scene {
         }
     }
 
-    updateHook() {
+    updateHook(delta) {
         if (!this.hookLaunched) {
-            this.hookAngle += this.hookSpeed * this.hookDir;
+            this.hookAngle += (this.hookSpeed * (delta/16.66) )* this.hookDir;
+
             if (Math.abs(this.hookAngle) >= HOOK_SWING) this.hookDir *= -1;
             this.ropeLength = 30;
             return;
         }
 
         if (!this.hookReturning) {
-            this.ropeLength += HOOK_EXTEND_SPEED;
+            this.ropeLength += HOOK_EXTEND_SPEED * (delta / 16.66);
             if (this.ropeLength >= MAX_ROPE_LENGTH) {
                 this.hookReturning = true;
             } else {
                 this.checkStarCollision(this.getHookWorldPos());
             }
         } else {
-            const returnSpeed = this.hookedObject ? HOOK_EXTEND_SPEED * 0.7 : HOOK_EXTEND_SPEED * 2;
-            this.ropeLength -= returnSpeed;
+            const returnSpeed = this.hookedObject ? HOOK_EXTEND_SPEED * 0.7 : HOOK_EXTEND_SPEED * 4;   //Increased the return speed
+            this.ropeLength -= returnSpeed * (delta / 16.66);
             if (this.ropeLength <= 30) this.onHookReturned();
         }
     }
