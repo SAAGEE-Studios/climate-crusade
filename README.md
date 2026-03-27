@@ -82,6 +82,12 @@ This section includes gameplay details that were not explicitly stated in-game d
 
    - Choosing **Exit** returns you to the level’s title card.  
    - From the title card, press **Esc** again to return to the Level Select screen.
+     
+3. Example Signup Details for TA Grading:
+   - Username: arol.nokam
+   - email: arolnokam@gmail.com
+   - Password: Arol1234$
+   - DOB: [Any day before today]
 ---
 
 ## 🌱 Purpose
