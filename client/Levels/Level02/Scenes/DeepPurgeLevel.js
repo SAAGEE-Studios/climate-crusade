@@ -90,7 +90,7 @@ export class DeepPurgeLevel extends Phaser.Scene {
         this.load.image('Level02Background', './client/Levels/Level02/Assets/Backgrounds/Background_Level_2.png');
         this.load.image('starCollect', './client/Levels/Level02/Assets/Items/Star_to_collect.png');
         this.load.image('boat', './client/Levels/Level02/Assets/Items/Boat.png');
-        this.load.image('hook', './client/Levels/Level02/Assets/Items/Hook.png');
+        this.load.image('hook', './client/Levels/Level02/Assets/Items/Hook.PNG');
 
         this.load.image('bottle', './client/Levels/Level02/Assets/Items/Plastic_Bottle.webp');
         this.load.image('wrap', './client/Levels/Level02/Assets/Items/Plastic_Wrap.webp');
