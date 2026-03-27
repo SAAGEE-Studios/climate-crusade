@@ -6,6 +6,13 @@ import { saveProgress } from '../../../Core/api.js';
 // =========================================================================
 // HELPER FUNCTIONS
 // =========================================================================
+
+/**
+ * Draws a customized star shape onto a Phaser Graphics object.
+ *
+ * Uses trigonometric calculations to generate the inner and outer points
+ * of a standard five-pointed star and applies the specified fill and stroke.
+ */
 function drawStar(g, cx, cy, r, color, alpha, strokeAlpha = 0.6) {
     g.fillStyle(color, alpha);
     g.lineStyle(1.5, 0xffffff, strokeAlpha);
@@ -35,11 +42,27 @@ export const TRASH_SPAWNED = 6;
 // =========================================================================
 // MAIN GAME SCENE 
 // =========================================================================
+
+/**
+ * DeepPurgeLevel
+ * --------------
+ * Main gameplay scene for Level 02.
+ *
+ * Handles the fishing/hook mechanic, timer, star collection,
+ * trash clearing, pause menu, and level completion overlays.
+ *
+ * Also manages star tracking and progress persistence.
+ */
 export class DeepPurgeLevel extends Phaser.Scene {
     constructor() {
         super('DeepPurgeLevel');
     }
 
+    /**
+     * Initializes the level state.
+     * * Sets up initial variables for stars collected, trash cleared,
+     * remaining time, hook properties, and game states before the scene starts.
+     */
     init() {
         this.starsCollected = 0;
         this.trashCleared = 0; 
@@ -57,6 +80,12 @@ export class DeepPurgeLevel extends Phaser.Scene {
         this.placedItems = []; 
     }
 
+    /**
+     * Preloads all necessary assets for the level.
+     *
+     * Loads images for the background, boat, hook, collectibles (stars),
+     * and various types of trash needed for the gameplay.
+     */
     preload() {
         this.load.image('Level02Background', './client/Levels/Level02/Assets/Backgrounds/Background_Level_2.png');
         this.load.image('starCollect', './client/Levels/Level02/Assets/Items/Star_to_collect.png');
@@ -68,6 +97,13 @@ export class DeepPurgeLevel extends Phaser.Scene {
         this.load.image('tire', './client/Levels/Level02/Assets/Items/Tire.webp');
         this.load.image('bag', './client/Levels/Level02/Assets/Items/Trash_Bag.webp');
     }
+
+    /**
+     * Sets up the level environment and gameplay systems.
+     *
+     * Initializes the background, boat, interactable items (stars and trash),
+     * the hook mechanism, HUD, inputs, and the countdown timer.
+     */
     create() {
         this.levelFinished = false;
 
@@ -87,6 +123,12 @@ export class DeepPurgeLevel extends Phaser.Scene {
         this.tweens.add({ targets: hint, alpha: 0, delay: 3000, duration: 1000 });
     }
 
+    /**
+     * Main game loop executed every frame.
+     *
+     * Handles pause menu logic, end-level transitions, user inputs for casting
+     * the hook, and updates the hook's movement and rendering.
+     */
     update(time,delta) {
         // Handle active Pause Menu state
         if (this.isPausedMenuOpen) {
@@ -132,6 +174,13 @@ export class DeepPurgeLevel extends Phaser.Scene {
     }
 
     // ── Background ──────────────────────────────────────────────────────────
+
+    /**
+     * Generates and scales the background image.
+     *
+     * Ensures the background correctly fits the screen dimensions while
+     * maintaining its aspect ratio.
+     */
     createBackground() {
         const bg = this.add.image(
             this.scale.width / 2,
@@ -149,6 +198,13 @@ export class DeepPurgeLevel extends Phaser.Scene {
     }
 
     // ── Boat ────────────────────────────────────────────────────────────────
+
+    /**
+     * Creates the player's boat and its bobbing animation.
+     *
+     * Sets the origin point for the fishing rope and adds a continuous
+     * vertical tween to simulate floating on water.
+     */
     createBoat() {
         const bx = this.scale.width / 2;
         const waterlineY = 430; 
@@ -168,6 +224,13 @@ export class DeepPurgeLevel extends Phaser.Scene {
     }
 
     // ── Stars ───────────────────────────────────────────────────────────────
+
+    /**
+     * Spawns the collectible stars.
+     *
+     * Places a predefined number of stars at valid, non-overlapping
+     * positions underwater for the player to collect.
+     */
     createStars() {
         this.starGroup = this.add.group();
         for (let i = 0; i < TOTAL_STARS; i++) {
@@ -183,6 +246,12 @@ export class DeepPurgeLevel extends Phaser.Scene {
         }
     }
 
+    /**
+     * Spawns the clearable trash items.
+     *
+     * Randomly selects trash types and places them at valid, non-overlapping
+     * positions underwater alongside the stars.
+     */
     createTrash() {
         this.trashGroup = this.add.group();
         const trashTypes = ['bottle', 'wrap', 'tire', 'bag'];
@@ -201,6 +270,12 @@ export class DeepPurgeLevel extends Phaser.Scene {
         }
     }
 
+    /**
+     * Calculates a valid underwater spawn position for items.
+     *
+     * Ensures that generated coordinates are below the waterline and
+     * adequately spaced out from previously placed items to prevent overlap.
+     */
     getValidPosition() {
         let posX, posY, attempts = 0;
         let isValid = false;
@@ -227,6 +302,13 @@ export class DeepPurgeLevel extends Phaser.Scene {
     }
 
     // ── Hook / Rope ─────────────────────────────────────────────────────────
+
+    /**
+     * Initializes the graphical elements for the hook and rope.
+     *
+     * Creates a graphics object for drawing the rope line and sets up
+     * the hidden hook sprite used during gameplay.
+     */
     createHook() {
         this.ropeGraphics = this.add.graphics().setDepth(12);
         this.hookSprite = this.add.image(0, 0, 'hook')
@@ -236,6 +318,12 @@ export class DeepPurgeLevel extends Phaser.Scene {
             .setVisible(false);
     }
 
+    /**
+     * Calculates the current world coordinates of the hook.
+     *
+     * Uses the rope's origin point, current length, and swing angle to
+     * determine exactly where the end of the hook is located.
+     */
     getHookWorldPos() {
         const rad = Phaser.Math.DegToRad(this.hookAngle + 90);
         return {
@@ -244,6 +332,12 @@ export class DeepPurgeLevel extends Phaser.Scene {
         };
     }
 
+    /**
+     * Renders the rope and hook visuals every frame.
+     *
+     * Clears and redraws the rope line with a slight sag effect, positions
+     * the hook sprite, and updates the position of any hooked object.
+     */
     drawRopeAndHook() {
         this.ropeGraphics.clear();
         const hp = this.getHookWorldPos();
@@ -272,6 +366,12 @@ export class DeepPurgeLevel extends Phaser.Scene {
         }
     }
 
+    /**
+     * Handles the physics and state transitions of the hook.
+     *
+     * Manages the continuous swinging motion when idle, the extension speed
+     * when launched, and the retraction speed when returning with or without an item.
+     */
     updateHook(delta) {
         if (!this.hookLaunched) {
             this.hookAngle += (this.hookSpeed * (delta/16.66) )* this.hookDir;
@@ -295,6 +395,12 @@ export class DeepPurgeLevel extends Phaser.Scene {
         }
     }
 
+    /**
+     * Resets the hook state after it fully retracts.
+     *
+     * Clears the hooked object, resets the rope length, and allows the player
+     * to cast the hook again.
+     */
     onHookReturned() {
         this.ropeLength = 30;
         this.hookLaunched = false;
@@ -305,6 +411,12 @@ export class DeepPurgeLevel extends Phaser.Scene {
         }
     }
 
+    /**
+     * Initiates the hook casting action.
+     *
+     * Locks the swinging angle and begins extending the rope downwards
+     * if the game is active and the hook isn't already launched.
+     */
     launchHook() {
         if (this.hookLaunched || this.paused) return;
         this.hookLaunched = true;
@@ -313,6 +425,12 @@ export class DeepPurgeLevel extends Phaser.Scene {
         this.hookedObject = null;
     }
 
+    /**
+     * Detects collisions between the hook and underwater items.
+     *
+     * Iterates through active stars and trash. If an item is within range,
+     * it attaches to the hook, updates HUD counters, and triggers the return phase.
+     */
     checkStarCollision(hp) {
         if (this.hookedObject) return;
 
@@ -342,6 +460,13 @@ export class DeepPurgeLevel extends Phaser.Scene {
     }
 
     // ── HUD ─────────────────────────────────────────────────────────────────
+
+    /**
+     * Initializes the Heads-Up Display (HUD).
+     *
+     * Creates the time text, star collection icons, and instructional
+     * text to guide the player at the start of the level.
+     */
     createHUD() {
         const panel = this.add.graphics().setDepth(50);
         panel.fillStyle(0x000000, 0.45);
@@ -371,6 +496,12 @@ export class DeepPurgeLevel extends Phaser.Scene {
         }).setOrigin(0.5).setAlpha(0.7).setDepth(51);
     }
 
+    /**
+     * Updates the visual countdown timer.
+     *
+     * Formats the remaining time into minutes and seconds, and changes
+     * the text color to indicate urgency as time runs low.
+     */
     updateTimerHUD() {
         const m = Math.floor(this.timeLeft / 60);
         const s = this.timeLeft % 60;
@@ -379,6 +510,12 @@ export class DeepPurgeLevel extends Phaser.Scene {
         else if (this.timeLeft <= 60) this.timerText.setColor("#ffaa44");
     }
 
+    /**
+     * Updates the visual representation of collected stars.
+     *
+     * Fills in the star icons on the HUD dynamically as the player
+     * successfully retrieves stars from the water.
+     */
     updateStarHUD() {
         for (let i = 0; i < 3; i++) {
             this.starHUDIcons[i].clear();
@@ -388,6 +525,13 @@ export class DeepPurgeLevel extends Phaser.Scene {
     }
 
     // ── Inputs ──────────────────────────────────────────────────────────────
+
+    /**
+     * Configures player input handlers.
+     *
+     * Sets up keyboard keys (SPACE, ESC) and pointer/touch events for
+     * launching the hook and navigating menus.
+     */
     createInputs() {
         // Setup keyboard handlers
         this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
@@ -402,6 +546,13 @@ export class DeepPurgeLevel extends Phaser.Scene {
     }
 
     // ── Timer ───────────────────────────────────────────────────────────────
+
+    /**
+     * Starts the main game countdown timer.
+     *
+     * Ticks down every second, updates the HUD, and triggers the game over
+     * sequence if the time reaches zero.
+     */
     createTimer() {
         this.timerEvent = this.time.addEvent({
             delay: 1000,
@@ -416,6 +567,13 @@ export class DeepPurgeLevel extends Phaser.Scene {
     }
 
     // ── End Game ────────────────────────────────────────────────────────────
+
+    /**
+     * Handles the end-of-level sequence.
+     *
+     * Pauses the game, stops the timer, saves the player's progress if they won,
+     * and displays the appropriate win or lose overlay.
+     */
     async endGame(won) {
         if (this.levelFinished) return;
         this.levelFinished = true;
@@ -439,6 +597,12 @@ export class DeepPurgeLevel extends Phaser.Scene {
         }
     }
 
+    /**
+     * Displays the victory screen.
+     *
+     * Shows the time remaining, animated stars based on player performance, 
+     * educational tips about ocean conservation, and triggers celebration effects.
+     */
     showWinOverlay() {
         const cx = this.scale.width / 2;
         const cy = this.scale.height / 2;
@@ -447,8 +611,8 @@ export class DeepPurgeLevel extends Phaser.Scene {
         bg.fillStyle(0x0d2a4a, 0.55);
         bg.fillRect(0, 0, this.scale.width, this.scale.height);
 
-        const panelW = 440;
-        const panelH = 360;
+        const panelW = 600; 
+        const panelH = 500; 
         const panelX = cx - panelW / 2;
         const panelY = cy - panelH / 2;
 
@@ -467,19 +631,10 @@ export class DeepPurgeLevel extends Phaser.Scene {
             fontFamily: "monospace", fontSize: "20px", color: "#aaddff",
         }).setOrigin(0.5).setDepth(62);
 
-        this.add.text(cx, panelY + 140,
-            '"Take urgent action to combat\nclimate change and its impacts"',
-            {
-                fontFamily: "monospace", fontSize: "18px",
-                color: "#88ccff", align: "center",
-                wordWrap: { width: panelW - 60 },
-            }
-        ).setOrigin(0.5).setDepth(62);
-
         for (let i = 0; i < 3; i++) {
             const g = this.add.graphics().setDepth(62);
             const filled = i < this.starsCollected;
-            drawStar(g, cx - 60 + i * 60, panelY + 215, 20,
+            drawStar(g, cx - 60 + i * 60, panelY + 150, 20,
                 filled ? 0xffe066 : 0x334466, filled ? 1 : 0.4, 0.5);
             if (filled) {
                 this.tweens.add({
@@ -492,12 +647,35 @@ export class DeepPurgeLevel extends Phaser.Scene {
 
         const m = Math.floor(this.timeLeft / 60);
         const s = this.timeLeft % 60;
-        this.add.text(cx, panelY + 265,
+        this.add.text(cx, panelY + 205,
             `Time remaining: ${m}:${s.toString().padStart(2, "0")}`, {
             fontFamily: "monospace", fontSize: "16px", color: "#aaddff",
         }).setOrigin(0.5).setDepth(62);
 
-        // Clean instruction rather than the button
+        // --- Educational Content ---
+        this.add.text(cx, panelY + 260, "How You Can Protect Life Below Water:", {
+            fontFamily: "monospace", fontSize: "20px", color: "#4ecdc4", fontStyle: "bold"
+        }).setOrigin(0.5).setDepth(62);
+
+        const tips = [
+            "Reduce single-use plastics and join local beach cleanups.",
+            "Dispose of hazardous waste properly to prevent toxic runoff.",
+            "Choose sustainable, ethically sourced seafood."
+        ];
+
+        tips.forEach((tip, index) => {
+            const tipText = this.add.text(cx, panelY + 310 + (index * 35), `• ${tip}`, {
+                fontFamily: "monospace", fontSize: "18px", color: "#cfe8b4", align: "center",
+                wordWrap: { width: panelW - 40 }
+            }).setOrigin(0.5).setDepth(62).setAlpha(0);
+
+            // Gentle fade-in
+            this.tweens.add({
+                targets: tipText, alpha: 1, duration: 400, delay: 400 + index * 300
+            });
+        });
+        // ---------------------------
+
         this.add.text(cx, panelY + panelH - 40, "Press SPACE or ESC to Exit", {
             fontFamily: "monospace", fontSize: "18px", color: "#4ecdc4", fontStyle: "bold"
         }).setOrigin(0.5).setDepth(63);
@@ -505,6 +683,12 @@ export class DeepPurgeLevel extends Phaser.Scene {
         this._spawnCelebration();
     }
 
+    /**
+     * Displays the game over screen.
+     *
+     * Informs the player that time ran out, shows the stars collected before
+     * failing, and prompts them to exit the level.
+     */
     showLoseOverlay() {
         const cx = this.scale.width / 2;
         const cy = this.scale.height / 2;
@@ -550,6 +734,12 @@ export class DeepPurgeLevel extends Phaser.Scene {
         }).setOrigin(0.5).setDepth(63);
     }
 
+    /**
+     * Creates a confetti-like particle effect.
+     *
+     * Spawns colored graphical circles that fall from the top of the screen
+     * to celebrate level completion.
+     */
     _spawnCelebration() {
         const colors = [0x4ecdc4, 0xffe066, 0xff6b9d, 0x88ccff, 0xaaffaa];
         for (let i = 0; i < 30; i++) {
@@ -572,6 +762,13 @@ export class DeepPurgeLevel extends Phaser.Scene {
     }
 
     // ── Pause Menu Overlay (Consistent with other levels) ────────────────────
+
+    /**
+     * Opens the pause menu.
+     *
+     * Halts gameplay mechanics and displays an overlay prompting the player
+     * to either exit the level or resume.
+     */
     openPauseMenu() {
         this.isPausedMenuOpen = true;
         this.paused = true;
@@ -619,6 +816,11 @@ export class DeepPurgeLevel extends Phaser.Scene {
         this.cancelKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.N);
     }
 
+    /**
+     * Closes the pause menu.
+     *
+     * Destroys the pause overlay elements and resumes active gameplay.
+     */
     closePauseMenu() {
         this.isPausedMenuOpen = false;
         this.paused = false;
