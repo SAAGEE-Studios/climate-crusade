@@ -28,7 +28,7 @@ Alvin’s species travels across the galaxy saving planets from destruction. The
   An underwater cleanup mission addressing water pollution.
 
 - **Level 03 – Sunken Wells**  
-  A desert-based challenge centered around water scarcity.
+  A desert-based challenge centered around water scarcity, sandstorms, and land erosion.
 
 - **Level 04 – Space Junk**  
   A space-level mission targeting space debris.
