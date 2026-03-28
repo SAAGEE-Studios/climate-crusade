@@ -6,6 +6,8 @@ Players take on the role of **Alvin**, an extraterrestrial hero sent to restore 
 
 Alvin’s species travels across the galaxy saving planets from destruction. They use high-tech devices to assess planetary health and have the ability to transform into different objects or life forms. To avoid suspicion on Earth, Alvin transforms into humans or objects depending on the environment. This is why players control different characters or objects in each level.
 
+**A more detailed description of the project is included in the `project proposal` document in this repository.**
+
 ---
 
 ## 🎮 Gameplay Overview
